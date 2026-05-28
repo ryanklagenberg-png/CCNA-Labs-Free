@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CCNA Sample Labs</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0a0e1a;
+    color: #e8eaed;
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(90deg, #1a2540, #243b5c);
+    padding: 14px 28px;
+    border-bottom: 2px solid #ffd166;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  header h1 { font-size: 18px; color: #ffd166; }
+  header .sub { font-size: 12px; color: #8aa0c0; margin-left: 14px; }
+  .header-left { display: flex; align-items: baseline; }
+  .cta-btn {
+    background: #ffd166; color: #1a2540;
+    text-decoration: none; font-weight: 700; font-size: 13px;
+    padding: 8px 16px; border-radius: 4px;
+    transition: all .2s;
+  }
+  .cta-btn:hover { background: #ffe08a; transform: translateY(-1px); box-shadow: 0 4px 10px #ffd16640; }
+  .cta-btn.lg { font-size: 15px; padding: 12px 24px; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 40px 28px 60px; }
+
+  .hero {
+    text-align: center;
+    padding: 30px 0 36px;
+    border-bottom: 1px solid #2a3550;
+    margin-bottom: 36px;
+  }
+  .hero h2 { font-size: 28px; color: #fff; margin-bottom: 10px; }
+  .hero p { font-size: 14px; color: #c8d3e0; max-width: 680px; margin: 0 auto 18px; line-height: 1.6; }
+  .hero .pack-line { font-size: 12px; color: #8aa0c0; margin-top: 14px; letter-spacing: 0.5px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: #11182b;
+    border: 1px solid #2a3550;
+    border-radius: 6px;
+    padding: 20px 22px;
+    text-decoration: none;
+    color: inherit;
+    transition: all .2s;
+    display: flex; flex-direction: column;
+  }
+  .card:hover {
+    border-color: #ffd166;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px #00000060;
+  }
+  .card-tag {
+    font-family: 'Consolas', monospace;
+    font-size: 11px; color: #ffd166;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-size: 16px; color: #fff;
+    font-weight: 600; margin-bottom: 8px;
+  }
+  .card-desc {
+    font-size: 13px; color: #c8d3e0;
+    line-height: 1.55; margin-bottom: 14px;
+    flex: 1;
+  }
+  .card-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: #8aa0c0;
+    border-top: 1px solid #2a3550;
+    padding-top: 10px;
+  }
+  .card-meta .difficulty { color: #ffd166; letter-spacing: 1px; }
+  .card-meta .launch { color: #06d6a0; font-weight: 600; }
+
+  .upsell {
+    margin-top: 50px;
+    padding: 30px;
+    background: linear-gradient(135deg, #1a2540, #243b5c);
+    border: 1px solid #ffd16640;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .upsell h3 { color: #ffd166; font-size: 20px; margin-bottom: 10px; }
+  .upsell p { color: #c8d3e0; font-size: 13px; max-width: 580px; margin: 0 auto 18px; line-height: 1.6; }
+
+  footer {
+    text-align: center;
+    padding: 30px 20px 20px;
+    font-size: 11px;
+    color: #6a7a90;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>CCNA Sample Labs</h1>
+    <span class="sub">Free sampler &middot; 4 interactive drills</span>
+  </div>
+  <a href="#full-pack" class="cta-btn">PM me for the full pack &rarr;</a>
+</header>
+
+<main>
+
+  <section class="hero">
+    <h2>Drill CCNA concepts in your browser.</h2>
+    <p>Four hand-built labs covering inter-VLAN routing, ACLs, and STP elections. No install, no Packet Tracer, no fluff &mdash; just focused practice with progressive hints and instant feedback.</p>
+    <p class="pack-line">This is the free sampler. The full pack includes the complete catalog.</p>
+  </section>
+
+  <div class="grid">
+
+    <a href="Inter-VLAN Routing.html" class="card">
+      <div class="card-tag">CCNA-VLAN-01</div>
+      <div class="card-title">Inter-VLAN Routing &mdash; Router-on-a-Stick</div>
+      <div class="card-desc">Configure 4 subinterfaces with 802.1Q encapsulation on a Cisco ISR for Meridian Pharma's clean-room network. Full IOS terminal simulator with mode hopping and <code>show</code> commands.</div>
+      <div class="card-meta">
+        <span class="difficulty">&#9733;&#9733;&#9734;</span>
+        <span class="launch">Launch lab &rarr;</span>
+      </div>
+    </a>
+
+    <a href="Numbered Extended ACL.html" class="card">
+      <div class="card-tag">CCNA-ACL-01</div>
+      <div class="card-title">Numbered Extended ACL &mdash; HTTPS to EHR Only</div>
+      <div class="card-desc">Build a numbered extended ACL for Beacon Hill Pediatrics to lock down staff access to an EHR server &mdash; HTTPS only, everything else denied. Drag-and-drop statement builder.</div>
+      <div class="card-meta">
+        <span class="difficulty">&#9733;&#9733;&#9734;</span>
+        <span class="launch">Launch lab &rarr;</span>
+      </div>
+    </a>
+
+    <a href="Named Extended ACL.html" class="card">
+      <div class="card-tag">CCNA-ACL-02</div>
+      <div class="card-title">Named Extended ACL &mdash; SMB to File Server</div>
+      <div class="card-desc">Build a named extended ACL <code>FIN-SECURE</code> for Calloway Wealth Advisors so Finance can reach the file server over SMB and nothing else. Order matters.</div>
+      <div class="card-meta">
+        <span class="difficulty">&#9733;&#9733;&#9734;</span>
+        <span class="launch">Launch lab &rarr;</span>
+      </div>
+    </a>
+
+    <a href="Spanning Tree Protocol.html" class="card">
+      <div class="card-tag">CCNA-STP-01</div>
+      <div class="card-title">STP Election &mdash; Four-Switch Square Ring</div>
+      <div class="card-desc">Identify the Root Bridge, every Root Port, every Designated Port, and the Blocking Port across a 4-switch ring at Foxglen Public Library &mdash; with a real BID tie-breaker.</div>
+      <div class="card-meta">
+        <span class="difficulty">&#9733;&#9733;&#9734;</span>
+        <span class="launch">Launch lab &rarr;</span>
+      </div>
+    </a>
+
+  </div>
+
+  <section class="upsell" id="full-pack">
+    <h3>Like the samples?</h3>
+    <p>The full pack spans both cohort courses &mdash; Network Essentials and Network Fundamentals &mdash; with the complete catalog of browser-based drills across VLANs, ACLs, STP, routing, services, security, and modern operations. Same format, no install. <strong>PM me for details.</strong></p>
+    <a href="#" class="cta-btn lg">PM me for the full pack &rarr;</a>
+  </section>
+
+</main>
+
+<footer>
+  CCNA Sample Labs
+</footer>
+
+</body>
+</html>

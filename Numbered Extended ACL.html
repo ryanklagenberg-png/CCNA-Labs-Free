@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CCNA-ACL-01 — Numbered Extended ACL (HTTPS to EHR)</title>
+<script src="progress.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0e1a; color: #e8eaed; overflow: hidden; height: 100vh; }
+  header { background: linear-gradient(90deg, #1a2540, #243b5c); padding: 12px 24px; border-bottom: 2px solid #ffd166; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 17px; color: #ffd166; }
+  header .sub { font-size: 12px; color: #8aa0c0; margin-left: 14px; }
+  .header-left { display: flex; align-items: baseline; }
+  .back-link { color: #8aa0c0; text-decoration: none; font-size: 13px; padding: 6px 12px; border: 1px solid #3a4d6e; border-radius: 4px; transition: all .2s; }
+  .back-link:hover { background: #243b5c; color: #ffd166; }
+  .main-area { display: flex; height: calc(100vh - 50px); }
+  .topology { flex: 1; position: relative; background: radial-gradient(circle at 20% 20%, #15203a 0%, transparent 50%), radial-gradient(circle at 80% 80%, #1a2540 0%, transparent 50%), #0a0e1a; overflow: hidden; }
+  .topology svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .legend { position: absolute; bottom: 14px; left: 14px; background: #0e1424dd; border: 1px solid #2a3550; border-radius: 4px; padding: 10px 14px; font-size: 11px; color: #c8d3e0; max-width: 280px; }
+  .legend strong { color: #ffd166; display: block; margin-bottom: 4px; font-size: 10px; letter-spacing: 1px; }
+  .right-panel { width: 430px; background: #11182b; border-left: 1px solid #2a3550; display: flex; flex-direction: column; position: relative; }
+  .panel-resize-handle { position: absolute; left: -3px; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 10; }
+  .panel-resize-handle:hover { background: #ffd16640; }
+  .panel-scroll { flex: 1; overflow-y: auto; padding: 16px 18px; }
+  .panel-footer { border-top: 1px solid #2a3550; padding: 8px 14px; background: #0e1424; display: flex; justify-content: space-between; font-size: 12px; color: #8aa0c0; }
+  .scenario-label { font-size: 10px; letter-spacing: 2px; color: #ffd166; margin-bottom: 6px; font-weight: 600; }
+  .scenario-text { font-size: 13px; line-height: 1.55; color: #c8d3e0; }
+  .scenario-text em { color: #ffd166; font-style: italic; }
+  .scenario-text strong { color: #fff; }
+  .reqs { margin: 10px 0 4px 0; padding: 10px 12px 10px 28px; background: #1a2540; border-left: 3px solid #ffd166; border-radius: 3px; font-size: 12.5px; line-height: 1.6; color: #dfe7f2; }
+  .reqs li { margin: 2px 0; }
+  .reqs b { color: #ffd166; }
+  .tasks-divider { font-size: 11px; color: #8aa0c0; letter-spacing: 1.5px; margin: 16px 0 8px; text-transform: uppercase; border-bottom: 1px solid #2a3550; padding-bottom: 4px; }
+  .palette { display: flex; flex-direction: column; gap: 7px; margin-bottom: 6px; min-height: 10px; }
+  .palette.apply-pal { margin-top: 4px; }
+  .tile { padding: 8px 10px; border-radius: 4px; font-size: 12px; font-family: 'Consolas', monospace; cursor: grab; user-select: none; border: 1px solid transparent; transition: transform .1s, box-shadow .1s; line-height: 1.4; }
+  .tile:hover { transform: translateY(-1px); box-shadow: 0 4px 8px #00000060; }
+  .tile:active { cursor: grabbing; }
+  .tile.dragging { opacity: .4; }
+  .tile-stmt { background: #14304a; color: #bfe3ff; border-color: #1f4a6e; }
+  .tile-apply { background: #2a2440; color: #d9c8ff; border-color: #463a6e; }
+  .builder { background: #0a0e1a; border: 1px solid #2a3550; border-radius: 6px; padding: 10px; margin-bottom: 6px; }
+  .acl-entry { font-family: 'Consolas', monospace; font-size: 12px; color: #ffd166; padding: 4px 6px 8px; border-bottom: 1px dashed #2a3550; margin-bottom: 8px; }
+  .acl-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .acl-seq { font-family: 'Consolas', monospace; font-size: 11px; color: #6a7a90; width: 26px; text-align: right; flex-shrink: 0; }
+  .drop-slot { flex: 1; min-height: 34px; border: 2px dashed #3a4d6e; border-radius: 4px; background: #0e1424; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5a6a80; padding: 4px 8px; transition: all .15s; text-align: center; }
+  .drop-slot.over { border-color: #ffd166; background: #1a2540; }
+  .drop-slot.filled { border-style: solid; cursor: pointer; }
+  .drop-slot.correct { border-color: #06d6a0; box-shadow: 0 0 6px #06d6a060; }
+  .drop-slot.wrong { border-color: #ef476f; box-shadow: 0 0 6px #ef476f60; }
+  .drop-slot .tile { width: 100%; cursor: pointer; }
+  .acl-implicit { font-family: 'Consolas', monospace; font-size: 11px; color: #6a7a90; padding: 6px 6px 2px; margin-top: 4px; border-top: 1px dashed #2a3550; }
+  .apply-zone-wrap { display: flex; align-items: center; gap: 8px; }
+  .apply-zone-wrap .acl-seq { color: #c084fc; width: auto; }
+  .hint-btn { background: #243b5c; color: #ffd166; border: 1px solid #3a4d6e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%; text-align: left; transition: all .2s; }
+  .hint-btn:hover { background: #2d4570; }
+  .hint-dots { display: inline-flex; gap: 3px; margin-left: 8px; vertical-align: middle; }
+  .hint-dot { width: 7px; height: 7px; border-radius: 50%; background: #3a4d6e; }
+  .hint-dot.active { background: #ffd166; }
+  .hint-content { margin-top: 6px; padding: 10px; border-radius: 4px; font-size: 12.5px; line-height: 1.55; display: none; }
+  .hint-content.active { display: block; }
+  .hint-content code { background: #00000050; padding: 1px 5px; border-radius: 3px; font-size: 11.5px; }
+  .hint-content.tier1 { background: #3a3018; border-left: 3px solid #ffd166; color: #ffe8a8; }
+  .hint-content.tier2 { background: #3a2418; border-left: 3px solid #ff9e3d; color: #ffd5a8; }
+  .hint-content.tier3 { background: #18301c; border-left: 3px solid #06d6a0; color: #a8f0c8; }
+  .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .check-btn, .reset-btn { flex: 1; padding: 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .2s; }
+  .check-btn { background: #06d6a0; color: #0a0e1a; }
+  .check-btn:hover { background: #08eab1; }
+  .reset-btn { background: #243b5c; color: #c8d3e0; border: 1px solid #3a4d6e; }
+  .reset-btn:hover { background: #2d4570; }
+  .modal-overlay { position: fixed; inset: 0; background: #000a; display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: #11182b; border: 2px solid #06d6a0; border-radius: 8px; padding: 24px; max-width: 560px; width: 90%; box-shadow: 0 0 40px #06d6a040; }
+  .modal.fail { border-color: #ef476f; box-shadow: 0 0 40px #ef476f40; }
+  .modal h2 { color: #06d6a0; margin-bottom: 12px; font-size: 22px; }
+  .modal.fail h2 { color: #ef476f; }
+  .modal p { font-size: 13px; line-height: 1.6; margin-bottom: 10px; color: #c8d3e0; }
+  .modal code { background: #00000050; padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .modal .stats { background: #0a0e1a; border: 1px solid #2a3550; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', monospace; font-size: 12px; }
+  .modal .close-btn { background: #06d6a0; color: #0a0e1a; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 8px; }
+  .modal.fail .close-btn { background: #ef476f; color: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>CCNA-ACL-01 — Numbered Extended ACL</h1>
+    <span class="sub">HTTPS to EHR Only &nbsp;·&nbsp; Numbered Extended &nbsp;·&nbsp; Difficulty: &#9733;&#9733;&#9734;</span>
+  </div>
+  <a href="index.html" class="back-link">← Back to Labs</a>
+</header>
+
+<div class="main-area">
+  <div class="topology" id="topology">
+    <svg id="links" viewBox="0 0 920 560" preserveAspectRatio="xMidYMid meet"><rect x="400" y="216" width="120" height="68" rx="10" fill="#243b5c" stroke="#ffd166" stroke-width="2"/><ellipse cx="460" cy="216" rx="60" ry="11" fill="#2d4570" stroke="#ffd166" stroke-width="2"/><text x="460" y="256" text-anchor="middle" fill="#ffd166" font-family="Segoe UI,sans-serif" font-size="16" font-weight="700">R1</text><line x1="460" y1="250" x2="150" y2="150" stroke="#3a4d6e" stroke-width="2"/><rect x="55" y="116" width="190" height="64" rx="8" fill="#0e1424" stroke="#2a3550" stroke-width="1.5"/><text x="150" y="140" text-anchor="middle" fill="#c8d3e0" font-family="Segoe UI,sans-serif" font-size="13" font-weight="600">Staff VLAN</text><text x="150" y="162" text-anchor="middle" fill="#8aa0c0" font-family="Consolas,monospace" font-size="12">10.2.5.0/24</text><text x="305.0" y="194.0" text-anchor="middle" fill="#ffd166" font-family="Consolas,monospace" font-size="12" font-weight="600">Gi0/0</text><line x1="460" y1="250" x2="770" y2="150" stroke="#3a4d6e" stroke-width="2"/><rect x="675" y="116" width="190" height="64" rx="8" fill="#0e1424" stroke="#2a3550" stroke-width="1.5"/><text x="770" y="140" text-anchor="middle" fill="#c8d3e0" font-family="Segoe UI,sans-serif" font-size="13" font-weight="600">EHR Server</text><text x="770" y="162" text-anchor="middle" fill="#8aa0c0" font-family="Consolas,monospace" font-size="12">10.2.9.10</text><text x="615.0" y="194.0" text-anchor="middle" fill="#ffd166" font-family="Consolas,monospace" font-size="12" font-weight="600">Gi0/1</text></svg>
+    <div class="legend">
+      <strong>Placement Rule</strong>
+      Standard ACL → as close to the <b>destination</b> as possible.<br>
+      Extended ACL → as close to the <b>source</b> as possible.
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-resize-handle"></div>
+    <div class="panel-scroll">
+      <div class="scenario-label">SCENARIO</div>
+      <div class="scenario-text"><strong>Beacon Hill Pediatrics</strong> must tighten access to the electronic health record server for a HIPAA review. <em>"Staff hit the EHR over HTTPS and nothing else. No raw HTTP, no other ports to that box. The rest of the network is unaffected."</em></div>
+      <ul class="reqs"><li>Staff <b>10.2.5.0/24</b> may reach EHR server <b>10.2.9.10</b> on <b>TCP 443</b> only.</li><li>Any other staff traffic to that server is denied.</li><li>All other traffic is permitted.</li></ul>
+
+      <div class="tasks-divider">Statement Palette — drag into the builder</div>
+      <div class="palette" id="paletteStmt"><div class="tile tile-stmt" draggable="true" data-tile="s0" data-kind="stmt">access-list 110 deny ip 10.2.5.0 0.0.0.255 host 10.2.9.10</div><div class="tile tile-stmt" draggable="true" data-tile="s1" data-kind="stmt">access-list 110 permit ip any any</div><div class="tile tile-stmt" draggable="true" data-tile="s2" data-kind="stmt">access-list 110 permit tcp 10.2.5.0 0.0.0.255 host 10.2.9.10 eq 443</div><div class="tile tile-stmt" draggable="true" data-tile="s3" data-kind="stmt">access-list 110 permit tcp 10.2.5.0 0.0.0.255 host 10.2.9.10 eq 80</div><div class="tile tile-stmt" draggable="true" data-tile="s4" data-kind="stmt">access-list 110 permit udp 10.2.5.0 0.0.0.255 host 10.2.9.10 eq 443</div><div class="tile tile-stmt" draggable="true" data-tile="s5" data-kind="stmt">access-list 110 deny ip any any</div></div>
+
+      <div class="tasks-divider">Build the ACL (order matters)</div>
+      <div class="builder" id="builder"><div class="acl-row"><span class="acl-seq">10</span><div class="drop-slot" data-zone="acl" data-id="slot0">drop a statement here</div></div><div class="acl-row"><span class="acl-seq">20</span><div class="drop-slot" data-zone="acl" data-id="slot1">drop a statement here</div></div><div class="acl-row"><span class="acl-seq">30</span><div class="drop-slot" data-zone="acl" data-id="slot2">drop a statement here</div></div><div class="acl-implicit">&#8627; implicit <code>deny any</code> (automatic — not droppable)</div></div>
+
+      <div class="tasks-divider">Apply the ACL</div>
+      <div class="acl-row apply-zone-wrap">
+        <span class="acl-seq">apply →</span>
+        <div class="drop-slot" data-zone="apply" data-id="apply">drop the apply directive here</div>
+      </div>
+      <div class="palette apply-pal" id="paletteApply"><div class="tile tile-apply" draggable="true" data-tile="a0" data-kind="apply">interface Gi0/0<br> ip access-group 110 in</div><div class="tile tile-apply" draggable="true" data-tile="a1" data-kind="apply">interface Gi0/0<br> ip access-group 110 out</div><div class="tile tile-apply" draggable="true" data-tile="a2" data-kind="apply">interface Gi0/1<br> ip access-group 110 out</div><div class="tile tile-apply" draggable="true" data-tile="a3" data-kind="apply">interface Gi0/1<br> ip access-group 110 in</div></div>
+
+      <div class="tasks-divider">Hints</div>
+      <button class="hint-btn" id="hintBtn">💡 Reveal hint
+        <span class="hint-dots"><span class="hint-dot" id="dot1"></span><span class="hint-dot" id="dot2"></span><span class="hint-dot" id="dot3"></span></span>
+      </button>
+      <div class="hint-content" id="hintContent"></div>
+
+      <div class="actions">
+        <button class="check-btn" id="checkBtn">Check Answers</button>
+        <button class="reset-btn" id="resetBtn">Reset Board</button>
+      </div>
+      <button class="reset-btn" id="resetProgressBtn" style="margin-top:8px; width:100%; font-size:11px; color:#8aa0c0;">Reset my completion record for this drill</button>
+    </div>
+    <div class="panel-footer">
+      <span id="status">Drag statement tiles into the builder to begin</span>
+      <span id="progress">0%</span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <h2 id="modalTitle">ACL verified!</h2>
+    <p id="modalBody"></p>
+    <div class="stats" id="modalStats"></div>
+    <button class="close-btn" id="closeBtn">Continue</button>
+  </div>
+</div>
+
+<script>
+const LAB = {"id": "acl4-ne-ehr-https", "answers": {"acl:slot0": "s2", "acl:slot1": "s0", "acl:slot2": "s1", "apply:apply": "a0"}, "hints": {"t1": "Extended ACLs match protocol, source, destination and port \u2014 and are placed as close to the <b>source</b> as possible.", "t2": "Permit TCP 443 to the host, then deny any other IP from staff to that host, then <code>permit ip any any</code> so the rest of the network is unaffected. Apply <b>inbound</b> on the staff interface (Gi0/0).", "t3": "<code>permit tcp 10.2.5.0 0.0.0.255 host 10.2.9.10 eq 443</code> &rarr; <code>deny ip 10.2.5.0 0.0.0.255 host 10.2.9.10</code> &rarr; <code>permit ip any any</code>, applied <code>interface Gi0/0 / ip access-group 110 in</code>."}, "success": "HTTPS to the EHR is the only staff flow that survives; everything else to that host is denied, and <code>permit ip any any</code> keeps the rest of the network normal. Inbound on Gi0/0 filters as traffic enters from the source \u2014 the extended-ACL placement rule.", "fail": "Watch the protocol/port (TCP 443, not UDP, not 80) and the order: specific permit, then the host deny, then <code>permit ip any any</code>. Extended \u2192 inbound near the source (Gi0/0)."};
+const ANSWERS = LAB.answers;
+const TOTAL = Object.keys(ANSWERS).length;
+
+/* ---------- Hints ---------- */
+const HINTS = [
+  { cls: 'tier1', html: '<b>Tier 1 — Nudge.</b> ' + LAB.hints.t1 },
+  { cls: 'tier2', html: '<b>Tier 2 — More Detail.</b> ' + LAB.hints.t2 },
+  { cls: 'tier3', html: '<b>Tier 3 — Full Solution.</b> ' + LAB.hints.t3 },
+];
+let hintTier = 0;
+const hintBtn = document.getElementById('hintBtn');
+const hintContent = document.getElementById('hintContent');
+const dots = [document.getElementById('dot1'), document.getElementById('dot2'), document.getElementById('dot3')];
+hintBtn.addEventListener('click', () => {
+  if (hintTier >= 3) {
+    hintTier = 0;
+    hintContent.classList.remove('active');
+    dots.forEach(d => d.classList.remove('active'));
+    hintBtn.firstChild.textContent = '💡 Reveal hint ';
+    return;
+  }
+  const h = HINTS[hintTier];
+  hintContent.className = 'hint-content active ' + h.cls;
+  hintContent.innerHTML = h.html;
+  dots[hintTier].classList.add('active');
+  hintTier++;
+  hintBtn.firstChild.textContent = (hintTier < 3 ? '💡 Next hint (' + (hintTier + 1) + '/3) ' : '💡 Hide hints ');
+});
+
+/* ---------- Drag and drop ---------- */
+let dragEl = null;
+function wireTile(t) {
+  t.addEventListener('dragstart', () => { dragEl = t; setTimeout(() => t.classList.add('dragging'), 0); });
+  t.addEventListener('dragend', () => { t.classList.remove('dragging'); dragEl = null; });
+  t.addEventListener('click', () => {
+    // Clicking a tile that sits in a slot returns it to its palette.
+    const slot = t.closest('.drop-slot');
+    if (slot) { returnTile(t); scoreReset(slot); updateProgress(); }
+  });
+}
+document.querySelectorAll('.tile').forEach(wireTile);
+
+function paletteFor(kind) {
+  return document.getElementById(kind === 'apply' ? 'paletteApply' : 'paletteStmt');
+}
+function returnTile(t) {
+  paletteFor(t.dataset.kind).appendChild(t);
+}
+function scoreReset(slot) {
+  slot.classList.remove('correct', 'wrong');
+}
+
+function wireSlot(slot) {
+  const accepts = slot.dataset.zone === 'apply' ? 'apply' : 'stmt';
+  slot.addEventListener('dragover', (e) => {
+    if (!dragEl || dragEl.dataset.kind !== accepts) return;
+    e.preventDefault();
+    slot.classList.add('over');
+  });
+  slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+  slot.addEventListener('drop', (e) => {
+    e.preventDefault();
+    slot.classList.remove('over');
+    if (!dragEl || dragEl.dataset.kind !== accepts) return;
+    // If the slot already holds a tile, send it home first.
+    const existing = slot.querySelector('.tile');
+    if (existing && existing !== dragEl) returnTile(existing);
+    slot.appendChild(dragEl);
+    slot.classList.add('filled');
+    scoreReset(slot);
+    updateProgress();
+  });
+}
+document.querySelectorAll('.drop-slot').forEach(wireSlot);
+
+/* ---------- Progress ---------- */
+const statusEl = document.getElementById('status');
+const progressEl = document.getElementById('progress');
+function filledCount() {
+  let n = 0;
+  document.querySelectorAll('.drop-slot').forEach(s => { if (s.querySelector('.tile')) n++; });
+  return n;
+}
+function updateProgress() {
+  document.querySelectorAll('.drop-slot').forEach(s => {
+    if (s.querySelector('.tile')) s.classList.add('filled');
+    else { s.classList.remove('filled'); s.textContent = s.dataset.zone === 'apply' ? 'drop the apply directive here' : 'drop a statement here'; }
+  });
+  const n = filledCount();
+  const pct = Math.round((n / TOTAL) * 100);
+  const rec = window.Progress && Progress.getLab(LAB.id);
+  progressEl.textContent = pct + '% placed' + (rec && rec.completed ? ' · ✓ Completed' : '');
+  statusEl.textContent = n === 0 ? 'Drag statement tiles into the builder to begin'
+    : (n < TOTAL ? 'Keep going — fill every slot, then Check Answers' : 'All slots filled. Click Check Answers.');
+}
+
+/* ---------- Check ---------- */
+document.getElementById('checkBtn').addEventListener('click', () => {
+  let correct = 0, wrong = 0, missing = 0;
+  document.querySelectorAll('.drop-slot').forEach(slot => {
+    const key = slot.dataset.zone + ':' + slot.dataset.id;
+    const expected = ANSWERS[key];
+    const tile = slot.querySelector('.tile');
+    slot.classList.remove('correct', 'wrong');
+    if (!tile) { missing++; slot.classList.add('wrong'); return; }
+    if (tile.dataset.tile === expected) { correct++; slot.classList.add('correct'); }
+    else { wrong++; slot.classList.add('wrong'); }
+  });
+  showResult(correct, wrong, missing);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.querySelectorAll('.drop-slot .tile').forEach(t => returnTile(t));
+  document.querySelectorAll('.drop-slot').forEach(scoreReset);
+  updateProgress();
+});
+document.getElementById('resetProgressBtn').addEventListener('click', () => {
+  if (!confirm('Clear your saved completion record for this drill?')) return;
+  if (window.Progress) Progress.resetLab(LAB.id);
+  updateProgress();
+});
+
+/* ---------- Modal ---------- */
+const modalOverlay = document.getElementById('modalOverlay');
+const modal = document.getElementById('modal');
+function showResult(correct, wrong, missing) {
+  const ok = wrong + missing === 0;
+  modal.classList.toggle('fail', !ok);
+  document.getElementById('modalTitle').textContent = ok ? '✓ ACL Verified' : 'Not quite — review the red rows';
+  document.getElementById('modalBody').innerHTML = ok ? LAB.success : LAB.fail;
+  document.getElementById('modalStats').innerHTML =
+    '<div>Correct: ' + correct + '</div><div>Wrong: ' + wrong + '</div><div>Missing: ' + missing + '</div>';
+  if (ok && window.Progress) { Progress.recordLabComplete(LAB.id); updateProgress(); }
+  modalOverlay.classList.add('active');
+}
+document.getElementById('closeBtn').addEventListener('click', () => modalOverlay.classList.remove('active'));
+
+/* ---------- Resizable panel ---------- */
+(function () {
+  const handle = document.querySelector('.panel-resize-handle');
+  const panel = document.querySelector('.right-panel');
+  let dragging = false;
+  handle.addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
+  handle.addEventListener('dblclick', () => panel.style.width = '430px');
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const w = window.innerWidth - e.clientX;
+    if (w >= 340 && w <= window.innerWidth * 0.7) panel.style.width = w + 'px';
+  });
+  window.addEventListener('mouseup', () => dragging = false);
+})();
+
+updateProgress();
+</script>
+</body>
+</html>

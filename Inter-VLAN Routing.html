@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CCNA Lab 6.7 — Inter-VLAN Routing C</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #080808;
+  background-image: radial-gradient(circle, #1c1c1c 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  height: 100vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+header {
+  background: #111;
+  padding: 12px 24px;
+  border-bottom: 2px solid #1a1a1a;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+header h1 { font-size: 16px; color: #00d4ff; }
+header p  { font-size: 12px; color: #888; }
+.header-left  { display: flex; flex-direction: column; gap: 2px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.nav-back {
+  font-size: 12px; color: #00d4ff; text-decoration: none;
+  border: 1px solid #00d4ff44; padding: 4px 12px; border-radius: 4px;
+}
+.nav-back:hover { background: #00d4ff22; }
+.mode-badge {
+  font-size: 10px; color: #00d4ff; letter-spacing: 2px; font-weight: bold;
+  border: 1px solid #00d4ff; padding: 3px 10px; border-radius: 10px;
+  text-transform: uppercase;
+}
+
+main { flex: 1; display: flex; overflow: hidden; }
+
+.topology {
+  flex: 1;
+  background: linear-gradient(135deg, #060810, #050505 70%);
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+svg.topo-lines {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+.topo-node {
+  position: absolute;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+}
+.topo-node.clickable {
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  background: rgba(0, 30, 50, 0.4);
+  transition: all 0.2s;
+}
+.topo-node.clickable:hover {
+  background: rgba(0, 60, 90, 0.6);
+  border-color: #00d4ff;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+.topo-icon svg { display: block; }
+.topo-label {
+  font-size: 11px; font-weight: bold; color: #00d4ff;
+  font-family: 'Segoe UI', sans-serif;
+  text-shadow: 0 0 4px rgba(0,212,255,0.4);
+}
+.topo-sublabel {
+  font-size: 9px; color: #888;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  white-space: nowrap;
+}
+.term-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 50;
+  align-items: center; justify-content: center;
+}
+.term-overlay.show { display: flex; }
+
+#term {
+  background: #000;
+  border: 1px solid #00d4ff;
+  border-radius: 8px;
+  width: 820px; max-width: 95vw;
+  height: 540px; max-height: 90vh;
+  display: flex; flex-direction: column;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+}
+#term-head {
+  background: #1a1a1a;
+  padding: 8px 16px;
+  border-bottom: 1px solid #2a2a2a;
+  font-size: 11px; color: #888;
+  letter-spacing: 1px; text-transform: uppercase;
+  flex-shrink: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  border-radius: 8px 8px 0 0;
+}
+#term-head span#devname { color: #00d4ff; font-weight: bold; }
+#term-close {
+  background: #e74c3c; border: none; color: white;
+  width: 22px; height: 22px; border-radius: 50%;
+  cursor: pointer; font-size: 14px; line-height: 22px;
+  text-align: center; padding: 0; font-weight: bold;
+}
+#term-close:hover { background: #ff6655; }
+#term-out {
+  flex: 1; overflow-y: auto;
+  padding: 10px 14px; white-space: pre-wrap;
+  color: #d0d0d0;
+  scrollbar-width: thin;
+}
+#term-out::-webkit-scrollbar { width: 8px; }
+#term-out::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+#term-in-line {
+  display: flex; align-items: center;
+  padding: 6px 14px 10px 14px;
+  border-top: 1px solid #1a1a1a;
+  background: #050505;
+  flex-shrink: 0;
+}
+#term-prompt { color: #00ff66; white-space: pre; }
+#term-in {
+  flex: 1;
+  background: transparent; border: none;
+  color: #d0d0d0;
+  font-family: inherit; font-size: inherit; outline: none;
+  margin-left: 6px;
+}
+
+#panel {
+  width: 440px;
+  background: #0d0d0d;
+  border-left: 1px solid #2a2a2a;
+  display: flex; flex-direction: column;
+  flex-shrink: 0; overflow: hidden;
+  position: relative;
+  z-index: 100;
+}
+#panel-scroll { flex: 1; overflow-y: auto; }
+
+.scenario {
+  background: linear-gradient(135deg, #0a0a1a, #0d0d14);
+  padding: 14px 18px;
+  border-bottom: 1px solid #1a1a2a;
+  flex-shrink: 0;
+}
+.scenario-label {
+  font-size: 10px; color: #00d4ff;
+  letter-spacing: 2px; font-weight: bold;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.scenario-text { font-size: 12px; color: #bbb; line-height: 1.55; margin-bottom: 10px; }
+.scenario-text b { color: #fff; }
+.scenario-text i { color: #ffd166; font-style: italic; }
+.scenario-objective {
+  color: #ffd166; font-weight: bold;
+  font-size: 11px; line-height: 1.5;
+  margin-top: 6px;
+}
+
+/* IP Table inside scenario */
+.ip-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 11px;
+}
+.ip-table th {
+  background: #0d0d1a; color: #00d4ff;
+  text-align: left; padding: 5px 8px;
+  border: 1px solid #1a1a2a;
+  font-weight: bold; font-size: 10px;
+  text-transform: uppercase;
+}
+.ip-table td {
+  padding: 4px 8px;
+  border: 1px solid #1a1a2a;
+  color: #ccc;
+  font-family: 'Courier New', monospace;
+}
+.ip-table td.vlan-name { color: #ffd166; font-family: 'Segoe UI', sans-serif; font-weight: bold; }
+
+.tasks-divider {
+  background: #0a0a0a;
+  padding: 10px 18px;
+  font-size: 10px; color: #888;
+  letter-spacing: 2px; text-transform: uppercase;
+  font-weight: bold;
+  border-bottom: 1px solid #1a1a1a;
+  display: flex; justify-content: space-between; align-items: center;
+}
+#progress-count { color: #00d4ff; font-size: 11px; }
+
+.task-block {
+  padding: 12px 18px 14px;
+  border-bottom: 1px solid #161616;
+}
+.task-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.task-status {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid #444; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: transparent; flex-shrink: 0;
+  transition: all 0.2s;
+}
+.task-block.done .task-status {
+  border-color: #00e676; background: #00e676; color: #000;
+}
+.task-block.wip .task-status {
+  border-color: #ffd166; color: #ffd166;
+}
+.task-num { font-size: 11px; color: #555; font-weight: bold; letter-spacing: 1px; }
+.task-title { font-size: 13px; color: #e0e0e0; font-weight: bold; flex: 1; }
+.hint-btn {
+  background: transparent; border: 1px solid #ffd16644;
+  color: #ffd166; font-size: 10px; padding: 3px 8px;
+  border-radius: 4px; cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
+}
+.hint-btn:hover { background: #ffd16622; }
+.hint-dots { display: inline-flex; gap: 3px; }
+.hint-dot {
+  width: 4px; height: 4px; border-radius: 50%; background: #444;
+}
+.hint-dot.on { background: #ffd166; }
+
+.task-body { padding-left: 30px; font-size: 12px; color: #aaa; line-height: 1.55; }
+.task-body code {
+  background: #0a0a0a; color: #00ff66;
+  padding: 1px 6px; border-radius: 3px;
+  font-family: 'Courier New', monospace; font-size: 11px;
+}
+
+.hint-box {
+  margin-top: 8px; padding: 8px 12px;
+  border-radius: 5px; font-size: 11px; line-height: 1.55;
+  display: none;
+}
+.hint-box.show { display: block; }
+.hint-box.l1 { background: #332c0a; border-left: 3px solid #ffd166; color: #ffd166; }
+.hint-box.l2 { background: #331f0a; border-left: 3px solid #ff9a3c; color: #ffc99a; }
+.hint-box.l3 { background: #0a2e1a; border-left: 3px solid #00e676; color: #9be8b7; }
+.hint-cmd {
+  background: #000; padding: 6px 10px;
+  border-radius: 3px; color: #00ff66;
+  font-family: 'Courier New', monospace;
+  margin-top: 6px; white-space: pre-wrap; font-size: 11px;
+}
+
+footer {
+  background: #0a0a0a;
+  padding: 8px 24px;
+  border-top: 1px solid #1a1a1a;
+  font-size: 11px; color: #666;
+  display: flex; gap: 24px; flex-shrink: 0;
+}
+footer b { color: #00d4ff; }
+
+.modal-wrap {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.modal-wrap.show { display: flex; }
+.modal {
+  background: #111; border: 2px solid #00e676; border-radius: 12px;
+  padding: 36px 44px; max-width: 580px;
+  box-shadow: 0 0 40px rgba(0,230,118,0.3);
+  text-align: center;
+}
+.modal h2 { color: #00e676; font-size: 28px; margin-bottom: 10px; }
+.modal p  { color: #ccc; font-size: 14px; line-height: 1.7; margin-bottom: 18px; }
+.modal .close-btn {
+  background: #00e676; color: #000; border: none; padding: 10px 24px;
+  border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px;
+}
+</style>
+<script src="progress.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>Lab 6.7 — Inter-VLAN Routing C</h1>
+    <p>Router-on-a-Stick &middot; 4 VLANs &middot; Meridian Pharma</p>
+  </div>
+  <div class="header-right">
+    <span class="mode-badge">ROUTER-ON-A-STICK</span>
+    <a href="index.html" class="nav-back">&larr; Back to Labs</a>
+  </div>
+</header>
+
+<main>
+
+  <div class="topology" id="topology">
+    <svg class="topo-lines" id="topo-lines"></svg>
+      <div class="topo-node" id="pc-vlan100" style="left:8%;top:18.0%;">
+        <div class="topo-icon"><svg width="40" height="40" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="4" width="36" height="26" rx="2" fill="#1a1a2a" stroke="#2db6e8" stroke-width="1.5"/><rect x="10" y="8" width="28" height="18" fill="#0d1117"/><rect x="14" y="32" width="20" height="3" fill="#2db6e8" rx="1"/><rect x="10" y="36" width="28" height="2" fill="#1578a7" rx="1"/><circle cx="24" cy="31" r="1" fill="#2db6e8"/></svg></div>
+        <div class="topo-label">CORP-PC</div>
+        <div class="topo-sublabel">VLAN 100 &middot; 172.16.100.10</div>
+      </div>
+      <div class="topo-node" id="pc-vlan200" style="left:8%;top:39.33%;">
+        <div class="topo-icon"><svg width="40" height="40" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="4" width="36" height="26" rx="2" fill="#1a1a2a" stroke="#2db6e8" stroke-width="1.5"/><rect x="10" y="8" width="28" height="18" fill="#0d1117"/><rect x="14" y="32" width="20" height="3" fill="#2db6e8" rx="1"/><rect x="10" y="36" width="28" height="2" fill="#1578a7" rx="1"/><circle cx="24" cy="31" r="1" fill="#2db6e8"/></svg></div>
+        <div class="topo-label">LAB-PC</div>
+        <div class="topo-sublabel">VLAN 200 &middot; 172.16.200.10</div>
+      </div>
+      <div class="topo-node" id="pc-vlan300" style="left:8%;top:60.67%;">
+        <div class="topo-icon"><svg width="40" height="40" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="4" width="36" height="26" rx="2" fill="#1a1a2a" stroke="#2db6e8" stroke-width="1.5"/><rect x="10" y="8" width="28" height="18" fill="#0d1117"/><rect x="14" y="32" width="20" height="3" fill="#2db6e8" rx="1"/><rect x="10" y="36" width="28" height="2" fill="#1578a7" rx="1"/><circle cx="24" cy="31" r="1" fill="#2db6e8"/></svg></div>
+        <div class="topo-label">VOICE-PC</div>
+        <div class="topo-sublabel">VLAN 300 &middot; 172.16.30.10</div>
+      </div>
+      <div class="topo-node" id="pc-vlan400" style="left:8%;top:82.0%;">
+        <div class="topo-icon"><svg width="40" height="40" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><rect x="6" y="4" width="36" height="26" rx="2" fill="#1a1a2a" stroke="#2db6e8" stroke-width="1.5"/><rect x="10" y="8" width="28" height="18" fill="#0d1117"/><rect x="14" y="32" width="20" height="3" fill="#2db6e8" rx="1"/><rect x="10" y="36" width="28" height="2" fill="#1578a7" rx="1"/><circle cx="24" cy="31" r="1" fill="#2db6e8"/></svg></div>
+        <div class="topo-label">GUEST-PC</div>
+        <div class="topo-sublabel">VLAN 400 &middot; 172.16.40.10</div>
+      </div>
+      <div class="topo-node" id="topo-sw" style="left:42%;top:50%;">
+        <div class="topo-icon"><svg width="52" height="44" viewBox="0 0 56 48" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="14" width="38" height="28" fill="#1a8ec7" stroke="#0d5a8a" stroke-width="1"/><polygon points="4,14 18,4 56,4 42,14" fill="#2db6e8" stroke="#0d5a8a" stroke-width="1"/><polygon points="42,14 56,4 56,32 42,42" fill="#1578a7" stroke="#0d5a8a" stroke-width="1"/><line x1="12" y1="28" x2="22" y2="28" stroke="white" stroke-width="2.5"/><polygon points="24,28 19,25 19,31" fill="white"/><line x1="34" y1="28" x2="24" y2="28" stroke="white" stroke-width="2.5"/><polygon points="22,28 27,25 27,31" fill="white"/></svg></div>
+        <div class="topo-label">MER-SW1</div>
+        <div class="topo-sublabel">L2 access &middot; preconfigured</div>
+      </div>
+      <div class="topo-node clickable" id="topo-rtr" style="left:78%;top:50%;" onclick="openCLI()">
+        <div class="topo-icon"><svg width="52" height="38" viewBox="0 0 56 40" xmlns="http://www.w3.org/2000/svg"><ellipse cx="28" cy="30" rx="26" ry="10" fill="#1578a7" stroke="#0d5a8a" stroke-width="1"/><rect x="2" y="16" width="52" height="14" fill="#1a8ec7"/><line x1="2" y1="16" x2="2" y2="30" stroke="#0d5a8a" stroke-width="1"/><line x1="54" y1="16" x2="54" y2="30" stroke="#0d5a8a" stroke-width="1"/><ellipse cx="28" cy="16" rx="26" ry="10" fill="#2db6e8" stroke="#0d5a8a" stroke-width="1"/><line x1="28" y1="13" x2="28" y2="7" stroke="white" stroke-width="2.5"/><polygon points="28,5 25,9 31,9" fill="white"/><line x1="28" y1="19" x2="28" y2="25" stroke="white" stroke-width="2.5"/><polygon points="28,27 25,23 31,23" fill="white"/><line x1="24" y1="16" x2="10" y2="16" stroke="white" stroke-width="2.5"/><polygon points="8,16 12,13 12,19" fill="white"/><line x1="32" y1="16" x2="46" y2="16" stroke="white" stroke-width="2.5"/><polygon points="48,16 44,13 44,19" fill="white"/></svg></div>
+        <div class="topo-label">MER-GW1</div>
+        <div class="topo-sublabel">Gi0/0 trunk</div>
+      </div>
+  </div>
+
+  <aside id="panel">
+    <div id="panel-scroll">
+      <section class="scenario">
+        <div class="scenario-label">Scenario</div>
+        <div class="scenario-text">Meridian Pharma operates a clean-room research building with strict network segmentation. Four VLANs are in place: CORP, LAB (research), VOICE (IP phones), and GUEST. The switch team has completed all access-port work; the trunk to your new ISR is live. You need to configure four router subinterfaces with 802.1Q encapsulation so routing between all four VLANs comes up. <i>"No host can reach another VLAN until you finish — get it done before 5 PM."</i></div>
+        <table class="ip-table">
+          <tr><th>VLAN</th><th>Name</th><th>Gateway / SVI IP</th><th>Mask</th></tr>
+                    <tr><td>VLAN 100</td><td class="vlan-name">CORP</td><td>172.16.100.254</td><td>/24</td></tr>
+          <tr><td>VLAN 200</td><td class="vlan-name">LAB</td><td>172.16.200.254</td><td>/24</td></tr>
+          <tr><td>VLAN 300</td><td class="vlan-name">VOICE</td><td>172.16.30.254</td><td>/24</td></tr>
+          <tr><td>VLAN 400</td><td class="vlan-name">GUEST</td><td>172.16.40.254</td><td>/24</td></tr>
+        </table>
+        <div class="scenario-objective">Mission: configure router-on-a-stick inter-VLAN routing for all 4 VLANs on MER-GW1.</div>
+      </section>
+
+      <div class="tasks-divider">
+        <span>Tasks</span>
+        <span id="progress-count">0 / 6</span>
+      </div>
+
+      
+      <div class="task-block" data-task="1">
+        <div class="task-head">
+          <div class="task-status">&#10003;</div>
+          <div class="task-num">1</div>
+          <div class="task-title">Enable the parent interface <code>Gi0/0</code></div>
+          <button class="hint-btn" onclick="cycleHint(1)">&#128161;<span class="hint-dots"><span class="hint-dot"></span><span class="hint-dot"></span><span class="hint-dot"></span></span></button>
+        </div>
+        <div class="task-body">Before subinterfaces work, the physical parent has to be administratively up. Routers default to <code>shutdown</code>.</div>
+        <div class="hint-box l1" data-hint="1-1">Enter interface config for the parent and take it out of shutdown.</div>
+        <div class="hint-box l2" data-hint="1-2">Use <code>interface Gi0/0</code> then <code>no shutdown</code>.</div>
+        <div class="hint-box l3" data-hint="1-3">
+          <div class="hint-cmd">interface Gi0/0
+ no shutdown</div>
+        </div>
+      </div>
+
+      <div class="task-block" data-task="2">
+        <div class="task-head">
+          <div class="task-status">&#10003;</div>
+          <div class="task-num">2</div>
+          <div class="task-title">Subinterface for VLAN 100 (CORP) &mdash; <code>172.16.100.254/24</code></div>
+          <button class="hint-btn" onclick="cycleHint(2)">&#128161;<span class="hint-dots"><span class="hint-dot"></span><span class="hint-dot"></span><span class="hint-dot"></span></span></button>
+        </div>
+        <div class="task-body">Create <code>Gi0/0.100</code>, tag it with <code>encapsulation dot1q 100</code>, and assign <code>172.16.100.254 255.255.255.0</code>.</div>
+        <div class="hint-box l1" data-hint="2-1">Enter <code>interface Gi0/0.100</code>. Subinterfaces don't exist until you enter them for the first time.</div>
+        <div class="hint-box l2" data-hint="2-2">On a subinterface you need <b>two</b> things: <code>encapsulation dot1q &lt;vlan&gt;</code> and <code>ip address</code>.</div>
+        <div class="hint-box l3" data-hint="2-3">
+          <div class="hint-cmd">interface Gi0/0.100
+ encapsulation dot1q 100
+ ip address 172.16.100.254 255.255.255.0</div>
+        </div>
+      </div>
+
+      <div class="task-block" data-task="3">
+        <div class="task-head">
+          <div class="task-status">&#10003;</div>
+          <div class="task-num">3</div>
+          <div class="task-title">Subinterface for VLAN 200 (LAB) &mdash; <code>172.16.200.254/24</code></div>
+          <button class="hint-btn" onclick="cycleHint(3)">&#128161;<span class="hint-dots"><span class="hint-dot"></span><span class="hint-dot"></span><span class="hint-dot"></span></span></button>
+        </div>
+        <div class="task-body">Create <code>Gi0/0.200</code>, tag it with <code>encapsulation dot1q 200</code>, and assign <code>172.16.200.254 255.255.255.0</code>.</div>
+        <div class="hint-box l1" data-hint="3-1">Enter <code>interface Gi0/0.200</code>. Subinterfaces don't exist until you enter them for the first time.</div>
+        <div class="hint-box l2" data-hint="3-2">On a subinterface you need <b>two</b> things: <code>encapsulation dot1q &lt;vlan&gt;</code> and <code>ip address</code>.</div>
+        <div class="hint-box l3" data-hint="3-3">
+          <div class="hint-cmd">interface Gi0/0.200
+ encapsulation dot1q 200
+ ip address 172.16.200.254 255.255.255.0</div>
+        </div>
+      </div>
+
+      <div class="task-block" data-task="4">
+        <div class="task-head">
+          <div class="task-status">&#10003;</div>
+          <div class="task-num">4</div>
+          <div class="task-title">Subinterface for VLAN 300 (VOICE) &mdash; <code>172.16.30.254/24</code></div>
+          <button class="hint-btn" onclick="cycleHint(4)">&#128161;<span class="hint-dots"><span class="hint-dot"></span><span class="hint-dot"></span><span class="hint-dot"></span></span></button>
+        </div>
+        <div class="task-body">Create <code>Gi0/0.300</code>, tag it with <code>encapsulation dot1q 300</code>, and assign <code>172.16.30.254 255.255.255.0</code>.</div>
+        <div class="hint-box l1" data-hint="4-1">Enter <code>interface Gi0/0.300</code>. Subinterfaces don't exist until you enter them for the first time.</div>
+        <div class="hint-box l2" data-hint="4-2">On a subinterface you need <b>two</b> things: <code>encapsulation dot1q &lt;vlan&gt;</code> and <code>ip address</code>.</div>
+        <div class="hint-box l3" data-hint="4-3">
+          <div class="hint-cmd">interface Gi0/0.300
+ encapsulation dot1q 300
+ ip address 172.16.30.254 255.255.255.0</div>
+        </div>
+      </div>
+
+      <div class="task-block" data-task="5">
+        <div class="task-head">
+          <div class="task-status">&#10003;</div>
+          <div class="task-num">5</div>
+          <div class="task-title">Subinterface for VLAN 400 (GUEST) &mdash; <code>172.16.40.254/24</code></div>
+          <button class="hint-btn" onclick="cycleHint(5)">&#128161;<span class="hint-dots"><span class="hint-dot"></span><span class="hint-dot"></span><span class="hint-dot"></span></span></button>
+        </div>
+        <div class="task-body">Create <code>Gi0/0.400</code>, tag it with <code>encapsulation dot1q 400</code>, and assign <code>172.16.40.254 255.255.255.0</code>.</div>
+        <div class="hint-box l1" data-hint="5-1">Enter <code>interface Gi0/0.400</code>. Subinterfaces don't exist until you enter them for the first time.</div>
+        <div class="hint-box l2" data-hint="5-2">On a subinterface you need <b>two</b> things: <code>encapsulation dot1q &lt;vlan&gt;</code> and <code>ip address</code>.</div>
+        <div class="hint-box l3" data-hint="5-3">
+          <div class="hint-cmd">interface Gi0/0.400
+ encapsulation dot1q 400
+ ip address 172.16.40.254 255.255.255.0</div>
+        </div>
+      </div>
+
+      <div class="task-block" data-task="6">
+        <div class="task-head">
+          <div class="task-status">&#10003;</div>
+          <div class="task-num">6</div>
+          <div class="task-title">Save the running-config to startup-config</div>
+          <button class="hint-btn" onclick="cycleHint(6)">&#128161;<span class="hint-dots"><span class="hint-dot"></span><span class="hint-dot"></span><span class="hint-dot"></span></span></button>
+        </div>
+        <div class="task-body">Lock in your work so it survives a reload.</div>
+        <div class="hint-box l1" data-hint="6-1">Run the save command from privileged EXEC (not config mode).</div>
+        <div class="hint-box l2" data-hint="6-2">Use <code>copy running-config startup-config</code> or the shortcut <code>copy run start</code> / <code>write memory</code> / <code>wr</code>.</div>
+        <div class="hint-box l3" data-hint="6-3">
+          <div class="hint-cmd">end
+copy running-config startup-config</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div class="term-overlay" id="term-overlay" onclick="if(event.target===this)closeCLI()">
+  <div id="term">
+    <div id="term-head">
+      <span>Console &mdash; <span id="devname">MER-GW1</span></span>
+      <button id="term-close" onclick="closeCLI()" title="Close (Esc)">&times;</button>
+    </div>
+    <div id="term-out"></div>
+    <div id="term-in-line">
+      <span id="term-prompt">MER-GW1&gt;</span>
+      <input id="term-in" type="text" autocomplete="off">
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>Mode: <b id="status-mode">privileged</b></span>
+  <span>Device: <b id="status-host">MER-GW1</b></span>
+  <span>Tasks: <b id="status-tasks">0/6</b></span>
+  <span>Saved: <b id="status-saved" style="color:#ff4444">No</b></span>
+</footer>
+
+<div class="modal-wrap" id="modal">
+  <div class="modal">
+    <h2>&#127881; Lab Complete!</h2>
+    <p>All inter-VLAN routing tasks on <b>MER-GW1</b> are done. Every VLAN now has a working Layer-3 gateway — hosts in different VLANs can reach each other through this device.</p>
+    <p style="color:#888;font-size:12px;">Inter-VLAN routing across 4 VLANs at Meridian Pharma. Try a different lab in the series for more practice.</p>
+    <button class="close-btn" onclick="document.getElementById('modal').classList.remove('show')">Close</button>
+  </div>
+</div>
+
+<script>
+const CFG = {"device_name": "MER-GW1", "parent_interface": "GigabitEthernet0/0", "parent_short": "Gi0/0", "vlans": [{"id": 100, "name": "CORP", "ip": "172.16.100.254", "mask": "255.255.255.0"}, {"id": 200, "name": "LAB", "ip": "172.16.200.254", "mask": "255.255.255.0"}, {"id": 300, "name": "VOICE", "ip": "172.16.30.254", "mask": "255.255.255.0"}, {"id": 400, "name": "GUEST", "ip": "172.16.40.254", "mask": "255.255.255.0"}]};
+const MODE = "ros";
+const TASK_COUNT = 6;
+
+// ────────────── State ──────────────
+const state = {
+  mode:        "priv",   // start already authenticated into priv EXEC
+  ifaceCtx:    null,     // active interface name
+  vlanCtx:     null,     // active vlan (during 'vlan N' config)
+  ipRouting:   false,
+  parentUp:    false,
+  // keyed on string id
+  subifaces:   {},      // { id: {encap, native, ip, mask, up} }
+  vlans:       {},      // { id: {name, svi_ip, svi_mask, svi_up } }
+  saved:       false,
+};
+
+for (const v of CFG.vlans) state.vlans[v.id] = { name: null, svi_ip: null, svi_mask: null, svi_up: false };
+
+const hints = {};
+for (let i = 1; i <= TASK_COUNT; i++) hints[i] = 0;
+
+// ────────────── Terminal helpers ──────────────
+const outEl = document.getElementById("term-out");
+const inEl  = document.getElementById("term-in");
+const promptEl = document.getElementById("term-prompt");
+
+function prompt() {
+  let p;
+  if (state.mode === "user")            p = CFG.device_name + ">";
+  else if (state.mode === "priv")       p = CFG.device_name + "#";
+  else if (state.mode === "global")     p = CFG.device_name + "(config)#";
+  else if (state.mode === "interface")  p = CFG.device_name + "(config-if)#";
+  else if (state.mode === "subif")      p = CFG.device_name + "(config-subif)#";
+  else if (state.mode === "vlan-db")    p = CFG.device_name + "(config-vlan)#";
+  else                                  p = CFG.device_name + "#";
+  promptEl.textContent = p;
+}
+
+function write(txt) { outEl.textContent += txt; outEl.scrollTop = outEl.scrollHeight; }
+function echoCmd(cmd) { write(promptEl.textContent + " " + cmd + "\n"); }
+
+// ────────────── Shorthand + normalize layer (lab1-parity) ──────────────
+const COMMAND_TEMPLATES = [
+  'configure terminal',
+  'copy running-config startup-config',
+  'write memory',
+  'no shutdown',
+  'show running-config',
+  'show startup-config',
+  'show vlan brief',
+  'show vlan',
+  'show interfaces trunk',
+  'show interfaces',
+  'show interface',
+  'show ip interface brief',
+  'show ip interface',
+  'show ip route',
+  'show version',
+  'show spanning-tree',
+  'encapsulation dot1q NUM native',
+  'encapsulation dot1q NUM',
+  'ip address IP IP',
+  'no ip address',
+  'ip routing',
+  'no ip routing',
+  'switchport mode access',
+  'switchport mode trunk',
+  'switchport access vlan NUM',
+  'interface IFACE',
+  'interface vlan NUM',
+  'hostname WORD',
+  'description LINE',
+  'vlan NUM',
+  'name LINE',
+  'enable',
+  'exit',
+  'end',
+  'disable',
+  'logout',
+  'reload',
+  'shutdown',
+];
+
+function normalizeIface(s) {
+  s = s.toLowerCase();
+  const m = s.match(/^([a-z]*)(\d+(?:\/\d+){0,2}(?:\.\d+)?)$/);
+  if (!m) return null;
+  const prefix = m[1], rest = m[2];
+  let canon;
+  if (!prefix) canon = '';
+  else if (/^(f|fa|fas|fast|fastethernet)$/.test(prefix)) canon = 'fa';
+  else if (/^(g|gi|gig|gigabitethernet)$/.test(prefix)) canon = 'gi';
+  else if (/^(te|ten|tengigabitethernet)$/.test(prefix)) canon = 'te';
+  else if (/^(e|et|eth|ethernet)$/.test(prefix)) canon = 'eth';
+  else if (/^(lo|loop|loopback)$/.test(prefix)) canon = 'lo';
+  else if (/^(vl|vlan)$/.test(prefix)) canon = 'vlan';
+  else return null;
+  return canon + rest;
+}
+
+const PLACEHOLDER_TEST = {
+  NUM: s => /^\d+$/.test(s),
+  IP:  s => /^\d+\.\d+\.\d+\.\d+$/.test(s),
+  WORD: s => /^\S+$/.test(s),
+};
+
+function expandTemplate(tokens, template) {
+  const ti = template.split(' ');
+  const out = [];
+  let ip = 0, tp = 0;
+  while (tp < ti.length) {
+    const t = ti[tp];
+    if (t === 'LINE') {
+      if (ip >= tokens.length) return null;
+      out.push(tokens.slice(ip).join(' '));
+      ip = tokens.length; tp++;
+      continue;
+    }
+    if (t === 'IFACE') {
+      if (ip >= tokens.length) return null;
+      const n = normalizeIface(tokens[ip]);
+      if (!n) return null;
+      out.push(n);
+      ip++; tp++;
+      continue;
+    }
+    if (PLACEHOLDER_TEST[t]) {
+      if (ip >= tokens.length) return null;
+      if (!PLACEHOLDER_TEST[t](tokens[ip])) return null;
+      out.push(tokens[ip]);
+      ip++; tp++;
+      continue;
+    }
+    if (ip >= tokens.length) return null;
+    const w = tokens[ip].toLowerCase();
+    if (w.length === 0 || !t.startsWith(w)) return null;
+    out.push(t);
+    ip++; tp++;
+  }
+  if (ip !== tokens.length) return null;
+  return out.join(' ');
+}
+
+function normalizeCmd(input) {
+  if (!input) return input;
+  input = input.trim();
+  if (!input) return input;
+  const doM = input.match(/^do\s+(.+)$/i);
+  if (doM) return 'do ' + normalizeCmd(doM[1]);
+  const tokens = input.split(/\s+/);
+  for (const tpl of COMMAND_TEMPLATES) {
+    const r = expandTemplate(tokens, tpl);
+    if (r !== null) return r;
+  }
+  return input;
+}
+
+function normalizeShow(cmd) {
+  const n = normalizeCmd(cmd);
+  if (n && n.startsWith('show ')) return n;
+  return null;
+}
+
+function normalizeConfig(cmd) { return normalizeCmd(cmd); }
+
+// ────────────── Command processor ──────────────
+function processCmd(raw) {
+  const cmd = raw.trim();
+  if (!cmd) return;
+  echoCmd(cmd);
+
+  // Normalize for matching; raw `parts` retained for value extraction.
+  const lower = cmd.toLowerCase();
+  const norm = normalizeConfig(lower);
+  const parts = cmd.split(/\s+/);
+  const nparts = norm.split(/\s+/);
+  const head = nparts[0];
+
+  if (head === "?" || head === "help") {
+    write("Common commands available in this lab:\n");
+    write("  configure terminal / end / exit\n");
+    write("  hostname X  (informational only here)\n");
+    if (MODE === "ros") {
+      write("  interface " + CFG.parent_short + "           ! parent physical\n");
+      write("  interface " + CFG.parent_short + ".<vlan>    ! subinterface\n");
+      write("  encapsulation dot1q <vlan>\n");
+      write("  ip address X.X.X.X Y.Y.Y.Y\n");
+      write("  no shutdown\n");
+    } else {
+      write("  ip routing                    ! enable L3 globally\n");
+      write("  vlan <id> / name <name>       ! VLAN database\n");
+      write("  interface vlan <id>           ! SVI\n");
+      write("  ip address X.X.X.X Y.Y.Y.Y\n");
+      write("  no shutdown\n");
+    }
+    write("  show running-config / show vlan brief / show ip interface brief\n");
+    write("  copy running-config startup-config\n");
+    return;
+  }
+  if (head === "clear") { outEl.textContent = ""; return; }
+
+  // Show from any mode (lab1-parity): strip optional `do` and run normalizeShow
+  {
+    const showInput = norm.replace(/^do\s+/, "");
+    const showCmd = normalizeShow(showInput);
+    if (showCmd) { runShow(showCmd.split(/\s+/)); return; }
+  }
+
+  // Universal end (any config submode → priv; user/priv → no-op)
+  if (head === "end") {
+    if (state.mode === "user" || state.mode === "priv") { prompt(); return; }
+    state.mode = "priv"; state.ifaceCtx = null; state.vlanCtx = null;
+    prompt(); return;
+  }
+  // Universal exit (mode-aware pop)
+  if (head === "exit" || head === "logout") {
+    if (state.mode === "vlan-db" || state.mode === "interface" || state.mode === "subif") {
+      state.mode = "global"; state.ifaceCtx = null; state.vlanCtx = null;
+    } else if (state.mode === "global") { state.mode = "priv"; }
+    else if (state.mode === "priv" || state.mode === "user") { write("Session ended.\n"); return; }
+    prompt(); return;
+  }
+
+  // Mode-hop helpers — `interface X` and `vlan N` jump from any config submode
+  function jumpToInterface(token) {
+    if (/^vlan\d+$/.test(token)) {
+      const vid = parseInt(token.replace("vlan", ""));
+      state.mode = "interface";
+      state.ifaceCtx = "vlan" + vid;
+      state.vlanCtx = null;
+      if (!state.vlans[vid]) state.vlans[vid] = { name: null, svi_ip: null, svi_mask: null, svi_up: false };
+      prompt(); return;
+    }
+    const subM = token.match(/^([a-z]+\d+\/\d+)\.(\d+)$/);
+    if (subM) {
+      const phys = subM[1], vid = parseInt(subM[2]);
+      const parentCanon = normalizeIface(CFG.parent_short || "") || "";
+      if (phys === parentCanon) {
+        state.mode = "subif";
+        state.ifaceCtx = CFG.parent_short + "." + vid;
+        state.vlanCtx = null;
+        if (!state.subifaces[vid]) state.subifaces[vid] = { encap: null, native: false, ip: null, mask: null };
+        prompt(); return;
+      }
+      write("% Unrecognized subinterface parent.\n"); return;
+    }
+    if (/^[a-z]+\d+\/\d+$/.test(token)) {
+      const parentCanon = normalizeIface(CFG.parent_short || "") || "";
+      if (token === parentCanon) {
+        state.mode = "interface";
+        state.ifaceCtx = CFG.parent_short;
+        state.vlanCtx = null;
+        prompt(); return;
+      }
+      write("% Unrecognized interface: " + token + "\n"); return;
+    }
+    write("% Unrecognized interface: " + token + "\n");
+  }
+  function jumpToVlanDb(vid) {
+    state.mode = "vlan-db"; state.vlanCtx = vid; state.ifaceCtx = null;
+    if (!state.vlans[vid]) state.vlans[vid] = { name: null, svi_ip: null, svi_mask: null, svi_up: false };
+    prompt();
+  }
+  function ifaceTarget() {
+    let t = nparts[1] || "";
+    if (t === "vlan" && nparts[2]) t = "vlan" + nparts[2];
+    return t;
+  }
+
+  // ─── User EXEC ───
+  if (state.mode === "user") {
+    if (head === "enable") { state.mode = "priv"; prompt(); return; }
+    write("% 'enable' first.\n"); return;
+  }
+
+  // ─── Privileged EXEC ───
+  if (state.mode === "priv") {
+    if (head === "enable") { prompt(); return; }
+    if (head === "disable") { state.mode = "user"; prompt(); return; }
+    if (norm === "configure terminal") { state.mode = "global"; prompt(); return; }
+    if (norm === "copy running-config startup-config" || norm === "write memory" || head === "wr") {
+      write("Building configuration...\n[OK]\n");
+      state.saved = true; evaluateTasks(); return;
+    }
+    write("% Unknown command in privileged EXEC. Try 'configure terminal'.\n");
+    return;
+  }
+
+  // ─── Global config ───
+  if (state.mode === "global") {
+    if (head === "hostname") return;
+    if (norm === "ip routing") { state.ipRouting = true; evaluateTasks(); return; }
+    if (head === "vlan") {
+      const vid = parseInt(nparts[1]);
+      if (!isNaN(vid)) { jumpToVlanDb(vid); return; }
+    }
+    if (head === "interface" && nparts[1]) { jumpToInterface(ifaceTarget()); return; }
+    write("% Unknown command in global config.\n");
+    return;
+  }
+
+  // ─── VLAN database mode (allow direct hops) ───
+  if (state.mode === "vlan-db") {
+    if (head === "vlan") {
+      const vid = parseInt(nparts[1]);
+      if (!isNaN(vid)) { jumpToVlanDb(vid); return; }
+    }
+    if (head === "interface" && nparts[1]) { jumpToInterface(ifaceTarget()); return; }
+    if (head === "name" && parts[1]) {
+      if (state.vlanCtx !== null) state.vlans[state.vlanCtx].name = parts.slice(1).join(" ");
+      evaluateTasks(); return;
+    }
+    write("% Unknown VLAN command.\n");
+    return;
+  }
+
+  // ─── Interface / Subinterface modes (allow direct hops) ───
+  if (state.mode === "interface" || state.mode === "subif") {
+    if (head === "interface" && nparts[1]) { jumpToInterface(ifaceTarget()); return; }
+    if (head === "vlan") {
+      const vid = parseInt(nparts[1]);
+      if (!isNaN(vid)) { jumpToVlanDb(vid); return; }
+    }
+
+    if (state.mode === "subif") {
+      const vid = parseInt(state.ifaceCtx.split(".")[1]);
+      if (head === "encapsulation" && nparts[1] === "dot1q" && nparts[2]) {
+        const eid = parseInt(nparts[2]);
+        state.subifaces[vid].encap = eid;
+        if (nparts[3] === "native") state.subifaces[vid].native = true;
+        evaluateTasks(); return;
+      }
+      if (head === "ip" && nparts[1] === "address" && nparts[2] && nparts[3]) {
+        state.subifaces[vid].ip   = nparts[2];
+        state.subifaces[vid].mask = nparts[3];
+        evaluateTasks(); return;
+      }
+      if (norm === "no shutdown") return;
+      if (head === "description") return;
+      write("% Unknown subinterface command.\n");
+      return;
+    }
+
+    // Regular interface mode (SVI or physical)
+    if (state.ifaceCtx && state.ifaceCtx.startsWith("vlan")) {
+      const vid = parseInt(state.ifaceCtx.replace("vlan", ""));
+      if (head === "ip" && nparts[1] === "address" && nparts[2] && nparts[3]) {
+        state.vlans[vid].svi_ip   = nparts[2];
+        state.vlans[vid].svi_mask = nparts[3];
+        evaluateTasks(); return;
+      }
+      if (norm === "no shutdown") {
+        state.vlans[vid].svi_up = true;
+        write("%LINK-3-UPDOWN: Interface Vlan" + vid + ", changed state to up\n");
+        evaluateTasks(); return;
+      }
+      if (head === "shutdown") { state.vlans[vid].svi_up = false; evaluateTasks(); return; }
+      if (head === "description") return;
+      write("% Unknown command in SVI config.\n");
+      return;
+    }
+
+    // Physical interface (the trunk parent)
+    if (norm === "no shutdown") {
+      state.parentUp = true;
+      write("%LINK-3-UPDOWN: Interface " + CFG.parent_interface + ", changed state to up\n");
+      write("%LINEPROTO-5-UPDOWN: Line protocol on Interface " + CFG.parent_interface + ", changed state to up\n");
+      evaluateTasks(); return;
+    }
+    if (head === "description") return;
+    write("% Unknown interface command.\n");
+    return;
+  }
+}
+
+// ────────────── Show commands ──────────────
+function runShow(parts) {
+  const sub = (parts[1] || "").toLowerCase();
+  if (sub === "running-config" || sub.startsWith("run")) {
+    write("!\nhostname " + CFG.device_name + "\n!\n");
+    if (state.ipRouting) write("ip routing\n!\n");
+    if (MODE === "ros") {
+      write("interface " + CFG.parent_interface + "\n");
+      write(state.parentUp ? " no shutdown\n" : " shutdown\n");
+      for (const v of CFG.vlans) {
+        const sub = state.subifaces[v.id];
+        if (sub) {
+          write("interface " + CFG.parent_interface + "." + v.id + "\n");
+          if (sub.encap) write(" encapsulation dot1q " + sub.encap + (sub.native ? " native" : "") + "\n");
+          if (sub.ip)    write(" ip address " + sub.ip + " " + sub.mask + "\n");
+        }
+      }
+    } else {
+      for (const v of CFG.vlans) {
+        const st = state.vlans[v.id];
+        if (st && st.name) {
+          write("vlan " + v.id + "\n");
+          write(" name " + st.name + "\n");
+        }
+      }
+      for (const v of CFG.vlans) {
+        const st = state.vlans[v.id];
+        if (st && st.svi_ip) {
+          write("interface Vlan" + v.id + "\n");
+          write(" ip address " + st.svi_ip + " " + st.svi_mask + "\n");
+          write(st.svi_up ? " no shutdown\n" : " shutdown\n");
+        }
+      }
+    }
+    write("end\n\n");
+    return;
+  }
+  if (sub === "vlan" && (parts[2] || "").toLowerCase().startsWith("brie")) {
+    write("VLAN Name                             Status    Ports\n");
+    write("---- -------------------------------- --------- -------------------------------\n");
+    write("1    default                          active    \n");
+    for (const v of CFG.vlans) {
+      const st = state.vlans[v.id];
+      const name = (st && st.name) ? st.name : ("VLAN" + String(v.id).padStart(4, "0"));
+      write(String(v.id).padEnd(5) + name.padEnd(33) + "active\n");
+    }
+    return;
+  }
+  if (sub === "ip" && (parts[2] || "").toLowerCase().startsWith("int")) {
+    write("Interface              IP-Address      OK? Method Status                Protocol\n");
+    if (MODE === "ros") {
+      const parentStatus = state.parentUp ? "up                     up" : "administratively down  down";
+      write(CFG.parent_interface.padEnd(22) + "unassigned      YES unset  " + parentStatus + "\n");
+      for (const v of CFG.vlans) {
+        const sub = state.subifaces[v.id];
+        if (sub && sub.ip) {
+          const stat = state.parentUp ? "up                     up" : "administratively down  down";
+          write((CFG.parent_interface + "." + v.id).padEnd(22) + sub.ip.padEnd(16)
+              + "YES manual " + stat + "\n");
+        }
+      }
+    } else {
+      for (const v of CFG.vlans) {
+        const st = state.vlans[v.id];
+        if (st && st.svi_ip) {
+          const stat = st.svi_up ? "up                     up" : "administratively down  down";
+          write(("Vlan" + v.id).padEnd(22) + st.svi_ip.padEnd(16)
+              + "YES manual " + stat + "\n");
+        }
+      }
+    }
+    return;
+  }
+  if (sub.startsWith("ver")) {
+    write("Cisco IOS Software - lab simulator\n");
+    return;
+  }
+  write("% show option not supported in this lab.\n");
+}
+
+// ────────────── Task evaluation ──────────────
+function evaluateTasks() {
+  const checks = {};
+
+  if (MODE === "ros") {
+    checks[1] = state.parentUp;
+    let i = 2;
+    for (const v of CFG.vlans) {
+      const sub = state.subifaces[v.id];
+      checks[i] = !!(sub && sub.encap === v.id && sub.ip === v.ip && sub.mask === v.mask);
+      i++;
+    }
+    checks[i] = state.saved;
+  } else {
+    // SVI
+    checks[1] = state.ipRouting;
+    let i = 2;
+    for (const v of CFG.vlans) {
+      const st = state.vlans[v.id];
+      checks[i] = !!(st && st.name === v.name && st.svi_ip === v.ip && st.svi_mask === v.mask && st.svi_up);
+      i++;
+    }
+    checks[i] = state.saved;
+  }
+
+  let done = 0;
+  for (let k = 1; k <= TASK_COUNT; k++) {
+    const el = document.querySelector(`.task-block[data-task="${k}"]`);
+    if (checks[k]) { el.classList.add("done"); el.classList.remove("wip"); done++; }
+    else           { el.classList.remove("done"); }
+  }
+
+  document.getElementById("progress-count").textContent = done + " / " + TASK_COUNT;
+  document.getElementById("status-tasks").textContent = done + "/" + TASK_COUNT;
+  const savedEl = document.getElementById("status-saved");
+  savedEl.textContent = state.saved ? "Yes" : "No";
+  savedEl.style.color = state.saved ? "#00e676" : "#ff4444";
+  document.getElementById("status-mode").textContent = state.mode.replace("-", " ");
+
+  if (done === TASK_COUNT) {
+    if (window.Progress) Progress.recordLabComplete("lab42-intervlan-c");
+    document.getElementById("modal").classList.add("show");
+  }
+
+  drawTopology();
+}
+
+// ────────────── Topology rendering ──────────────
+function drawTopology() {
+  const svg  = document.getElementById("topo-lines");
+  const topo = document.getElementById("topology");
+  if (!svg || !topo) return;
+  const NS = "http://www.w3.org/2000/svg";
+  const rect = topo.getBoundingClientRect();
+
+  function center(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const icon = el.querySelector(".topo-icon") || el;
+    const r = icon.getBoundingClientRect();
+    return { x: r.left - rect.left + r.width / 2, y: r.top - rect.top + r.height / 2 };
+  }
+
+  function addLine(x1, y1, x2, y2, stroke, width) {
+    const l = document.createElementNS(NS, "line");
+    l.setAttribute("x1", x1); l.setAttribute("y1", y1);
+    l.setAttribute("x2", x2); l.setAttribute("y2", y2);
+    l.setAttribute("stroke", stroke);
+    l.setAttribute("stroke-width", width || 2);
+    l.setAttribute("stroke-linecap", "round");
+    svg.appendChild(l);
+  }
+
+  function addLight(from, to, up) {
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len === 0) return;
+    const ux = dx/len, uy = dy/len;
+    const px = -uy, py = ux;
+    const cx = from.x + ux * 28, cy = from.y + uy * 28;
+    const size = 5;
+    const tipX = cx + ux*size, tipY = cy + uy*size;
+    const blX  = cx - px*size, blY  = cy - py*size;
+    const brX  = cx + px*size, brY  = cy + py*size;
+    const poly = document.createElementNS(NS, "polygon");
+    poly.setAttribute("points", tipX + "," + tipY + " " + blX + "," + blY + " " + brX + "," + brY);
+    poly.setAttribute("fill",   up ? "#00ff41" : "#ff4444");
+    poly.setAttribute("stroke", up ? "#00cc33" : "#cc0000");
+    poly.setAttribute("stroke-width", "0.5");
+    svg.appendChild(poly);
+  }
+
+  function addPortLabel(from, to, label, side) {
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len === 0) return;
+    const ux = dx/len, uy = dy/len;
+    const px = -uy, py = ux;
+    const dist = 46;
+    const offset = side === "left" ? -10 : 10;
+    const x = from.x + ux*dist + px*offset;
+    const y = from.y + uy*dist + py*offset;
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", x); t.setAttribute("y", y);
+    t.setAttribute("fill", "#888");
+    t.setAttribute("font-size", "9");
+    t.setAttribute("text-anchor", "middle");
+    t.setAttribute("font-family", "Courier New, monospace");
+    t.textContent = label;
+    svg.appendChild(t);
+  }
+
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const sw = center("topo-sw");
+  if (!sw) return;
+
+  if (MODE === "ros") {
+    // PC → access switch (preconfigured access ports — always green)
+    for (let i = 0; i < CFG.vlans.length; i++) {
+      const v  = CFG.vlans[i];
+      const pc = center("pc-vlan" + v.id);
+      if (!pc) continue;
+      addLine(pc.x, pc.y, sw.x, sw.y, "#00d4ff", 2);
+      addLight(sw, pc, true);
+      addLight(pc, sw, true);
+      addPortLabel(sw, pc, "Fa0/" + (i + 1), "right");
+    }
+    // Switch → router trunk (state.parentUp drives color)
+    const rt = center("topo-rtr");
+    if (rt) {
+      const up    = !!state.parentUp;
+      const color = up ? "#00ff41" : "#00d4ff55";
+      addLine(sw.x, sw.y, rt.x, rt.y, color, up ? 4 : 2);
+      addLight(sw, rt, up);
+      addLight(rt, sw, up);
+      addPortLabel(sw, rt, "Fa0/24", "left");
+      addPortLabel(rt, sw, CFG.parent_short, "right");
+    }
+  } else {
+    // SVI: PCs sit on access ports of THIS L3 switch.
+    // Per-VLAN link goes green once the SVI is configured + up.
+    for (let i = 0; i < CFG.vlans.length; i++) {
+      const v  = CFG.vlans[i];
+      const pc = center("pc-vlan" + v.id);
+      if (!pc) continue;
+      const st  = state.vlans[v.id];
+      const up  = !!(st && st.svi_ip && st.svi_up);
+      const color = up ? "#00ff41" : "#00d4ff55";
+      addLine(pc.x, pc.y, sw.x, sw.y, color, up ? 3 : 2);
+      addLight(sw, pc, up);
+      addLight(pc, sw, up);
+      addPortLabel(sw, pc, "Vlan" + v.id, "right");
+    }
+  }
+}
+
+// ────────────── Hint cycling ──────────────
+function cycleHint(task) {
+  hints[task] = (hints[task] + 1) % 4;
+  const level = hints[task];
+  const block = document.querySelector(`.task-block[data-task="${task}"]`);
+  const dots = block.querySelectorAll(".hint-dot");
+  dots.forEach((d, i) => {
+    if (level === 0) d.classList.remove("on");
+    else d.classList.toggle("on", i < level);
+  });
+  for (let i = 1; i <= 3; i++) {
+    const box = block.querySelector(`.hint-box[data-hint="${task}-${i}"]`);
+    if (!box) continue;
+    if (level === 0 || i > level) box.classList.remove("show");
+    else box.classList.add("show");
+  }
+}
+
+// ────────────── Terminal modal open/close ──────────────
+function openCLI() {
+  const ov = document.getElementById("term-overlay");
+  if (!ov) return;
+  ov.classList.add("show");
+  setTimeout(() => {
+    const i = document.getElementById("term-in");
+    if (i) i.focus();
+  }, 30);
+}
+function closeCLI() {
+  const ov = document.getElementById("term-overlay");
+  if (ov) ov.classList.remove("show");
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    const ov = document.getElementById("term-overlay");
+    if (ov && ov.classList.contains("show")) closeCLI();
+  }
+});
+
+// ────────────── Init ──────────────
+const cmdHistory = [];
+let histIdx = -1;
+
+inEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const val = inEl.value;
+    inEl.value = "";
+    if (val.trim()) { cmdHistory.unshift(val); histIdx = -1; }
+    processCmd(val);
+    prompt();
+  } else if (e.key === "ArrowUp") {
+    if (histIdx < cmdHistory.length - 1) {
+      histIdx++;
+      inEl.value = cmdHistory[histIdx];
+      setTimeout(() => inEl.setSelectionRange(inEl.value.length, inEl.value.length), 0);
+    }
+    e.preventDefault();
+  } else if (e.key === "ArrowDown") {
+    if (histIdx > 0) {
+      histIdx--;
+      inEl.value = cmdHistory[histIdx];
+    } else {
+      histIdx = -1;
+      inEl.value = "";
+    }
+    e.preventDefault();
+  }
+});
+
+prompt();
+write("Welcome — you are already authenticated into privileged EXEC mode.\n");
+write("Type 'configure terminal' (or 'conf t') to begin.\n\n");
+
+drawTopology();
+window.addEventListener("resize", drawTopology);
+window.addEventListener("load", drawTopology);
+</script>
+</body>
+</html>

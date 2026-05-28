@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CCNA-STP-01 — STP Election (Four-Switch Square Ring)</title>
+<script src="progress.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0e1a; color: #e8eaed; overflow: hidden; height: 100vh; }
+  header { background: linear-gradient(90deg, #1a2540, #243b5c); padding: 12px 24px; border-bottom: 2px solid #ffd166; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 18px; color: #ffd166; }
+  header .sub { font-size: 12px; color: #8aa0c0; margin-left: 14px; }
+  .header-left { display: flex; align-items: baseline; }
+  .back-link { color: #8aa0c0; text-decoration: none; font-size: 13px; padding: 6px 12px; border: 1px solid #3a4d6e; border-radius: 4px; transition: all 0.2s; }
+  .back-link:hover { background: #243b5c; color: #ffd166; }
+  .main-area { display: flex; height: calc(100vh - 50px); }
+  .topology { flex: 1; position: relative; background: radial-gradient(circle at 20% 20%, #15203a 0%, transparent 50%), radial-gradient(circle at 80% 80%, #1a2540 0%, transparent 50%), #0a0e1a; overflow: hidden; }
+  .topology svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  .right-panel { width: 380px; background: #11182b; border-left: 1px solid #2a3550; display: flex; flex-direction: column; position: relative; }
+  .panel-resize-handle { position: absolute; left: -3px; top: 0; bottom: 0; width: 6px; cursor: ew-resize; z-index: 10; }
+  .panel-resize-handle:hover { background: #ffd16640; }
+  .panel-scroll { flex: 1; overflow-y: auto; padding: 16px 18px; }
+  .panel-footer { border-top: 1px solid #2a3550; padding: 8px 14px; background: #0e1424; display: flex; justify-content: space-between; font-size: 12px; color: #8aa0c0; }
+  .scenario-section { margin-bottom: 14px; }
+  .scenario-label { font-size: 10px; letter-spacing: 2px; color: #ffd166; margin-bottom: 6px; font-weight: 600; }
+  .scenario-text { font-size: 13px; line-height: 1.5; color: #c8d3e0; margin-bottom: 10px; }
+  .scenario-text em { color: #ffd166; font-style: italic; } .scenario-text strong { color: #fff; }
+  .scenario-objective { color: #ffd166; font-weight: 600; font-size: 13px; margin-top: 10px; padding: 8px 10px; background: #1a2540; border-left: 3px solid #ffd166; border-radius: 3px; }
+  .tasks-divider { font-size: 11px; color: #8aa0c0; letter-spacing: 1.5px; margin: 14px 0 8px; text-transform: uppercase; border-bottom: 1px solid #2a3550; padding-bottom: 4px; }
+  .palette { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .token { padding: 8px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; text-align: center; cursor: grab; user-select: none; border: 2px solid transparent; transition: transform 0.1s, box-shadow 0.1s; }
+  .token:hover { transform: translateY(-1px); box-shadow: 0 4px 8px #00000060; }
+  .token:active { cursor: grabbing; } .token.dragging { opacity: 0.4; }
+  .token-root { background: #ffd166; color: #1a2540; } .token-rp { background: #06d6a0; color: #1a2540; }
+  .token-dp { background: #118ab2; color: #fff; } .token-blk { background: #ef476f; color: #fff; }
+  .instructions { font-size: 11px; color: #8aa0c0; line-height: 1.5; padding: 8px 10px; background: #0e1424; border-radius: 3px; margin-bottom: 10px; }
+  .hint-btn { background: #243b5c; color: #ffd166; border: 1px solid #3a4d6e; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%; text-align: left; transition: all 0.2s; }
+  .hint-btn:hover { background: #2d4570; }
+  .hint-dots { display: inline-flex; gap: 3px; margin-left: 8px; vertical-align: middle; }
+  .hint-dot { width: 7px; height: 7px; border-radius: 50%; background: #3a4d6e; } .hint-dot.active { background: #ffd166; }
+  .hint-content { margin-top: 6px; padding: 10px; border-radius: 4px; font-size: 12px; line-height: 1.5; display: none; }
+  .hint-content.active { display: block; }
+  .hint-content.tier1 { background: #3a3018; border-left: 3px solid #ffd166; color: #ffe8a8; }
+  .hint-content.tier2 { background: #3a2418; border-left: 3px solid #ff9e3d; color: #ffd5a8; }
+  .hint-content.tier3 { background: #18301c; border-left: 3px solid #06d6a0; color: #a8f0c8; }
+  .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .check-btn, .reset-btn { flex: 1; padding: 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+  .check-btn { background: #06d6a0; color: #0a0e1a; } .check-btn:hover { background: #08eab1; }
+  .reset-btn { background: #243b5c; color: #c8d3e0; border: 1px solid #3a4d6e; } .reset-btn:hover { background: #2d4570; }
+  .switch-card { position: absolute; width: 130px; text-align: center; pointer-events: none; }
+  .switch-name { color: #ffd166; font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+  .switch-bid { font-family: 'Consolas', monospace; font-size: 11px; color: #c8d3e0; background: #0a0e1a; padding: 2px 6px; border-radius: 3px; border: 1px solid #2a3550; display: inline-block; }
+  .switch-zone { margin-top: 4px; height: 28px; border: 2px dashed #3a4d6e; border-radius: 4px; background: #0e1424cc; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #6a7a90; pointer-events: auto; transition: all 0.15s; }
+  .switch-zone.over { border-color: #ffd166; background: #1a2540; }
+  .switch-zone.filled { border-style: solid; cursor: pointer; }
+  .switch-zone.correct { border-color: #06d6a0; box-shadow: 0 0 6px #06d6a060; }
+  .switch-zone.wrong { border-color: #ef476f; box-shadow: 0 0 6px #ef476f60; }
+  .port-zone { position: absolute; width: 64px; height: 22px; border: 2px dashed #3a4d6e; border-radius: 4px; background: #0e1424cc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6a7a90; pointer-events: auto; transition: all 0.15s; transform: translate(-50%, -50%); }
+  .port-zone.over { border-color: #ffd166; background: #1a2540; }
+  .port-zone.filled { border-style: solid; cursor: pointer; font-weight: 700; }
+  .port-zone.filled.role-rp { background: #06d6a0; color: #0a0e1a; }
+  .port-zone.filled.role-dp { background: #118ab2; color: #fff; }
+  .port-zone.filled.role-blk { background: #ef476f; color: #fff; }
+  .port-zone.correct { box-shadow: 0 0 8px #06d6a080; outline: 2px solid #06d6a0; }
+  .port-zone.wrong { box-shadow: 0 0 8px #ef476f80; outline: 2px solid #ef476f; }
+  .port-label { position: absolute; font-family: 'Consolas', monospace; font-size: 10px; color: #8aa0c0; pointer-events: none; transform: translate(-50%, -50%); background: #0a0e1aaa; padding: 1px 4px; border-radius: 2px; }
+  .cost-label { position: absolute; font-family: 'Consolas', monospace; font-size: 11px; color: #ffd166; background: #0a0e1a; padding: 2px 6px; border-radius: 3px; border: 1px solid #2a3550; pointer-events: none; transform: translate(-50%, -50%); font-weight: 600; }
+  .legend { position: absolute; bottom: 14px; left: 14px; background: #0e1424dd; border: 1px solid #2a3550; border-radius: 4px; padding: 10px 14px; font-size: 11px; color: #c8d3e0; }
+  .legend strong { color: #ffd166; display: block; margin-bottom: 4px; font-size: 10px; letter-spacing: 1px; }
+  .modal-overlay { position: fixed; inset: 0; background: #000a; display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: #11182b; border: 2px solid #06d6a0; border-radius: 8px; padding: 24px; max-width: 540px; width: 90%; box-shadow: 0 0 40px #06d6a040; }
+  .modal.fail { border-color: #ef476f; box-shadow: 0 0 40px #ef476f40; }
+  .modal h2 { color: #06d6a0; margin-bottom: 12px; font-size: 22px; } .modal.fail h2 { color: #ef476f; }
+  .modal p { font-size: 13px; line-height: 1.6; margin-bottom: 10px; color: #c8d3e0; }
+  .modal .stats { background: #0a0e1a; border: 1px solid #2a3550; border-radius: 4px; padding: 10px 14px; margin: 10px 0; font-family: 'Consolas', monospace; font-size: 12px; }
+  .modal .stats div { margin: 2px 0; }
+  .modal .close-btn { background: #06d6a0; color: #0a0e1a; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 8px; }
+  .modal.fail .close-btn { background: #ef476f; color: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>CCNA-STP-01 — STP Election</h1>
+    <span class="sub">Four-Switch Square Ring &nbsp;·&nbsp; Difficulty: ★★☆</span>
+  </div>
+  <a href="index.html" class="back-link">← Back to Labs</a>
+</header>
+
+<div class="main-area">
+  <div class="topology" id="topology">
+    <svg id="links"></svg>
+
+    <div class="switch-card" id="card-sw1" style="left: 180px; top: 60px;">
+      <div class="switch-name">SW1</div>
+      <div class="switch-bid">32769:0001.1111.1111</div>
+      <div class="switch-zone" data-zone="switch" data-id="sw1"></div>
+    </div>
+    <div class="switch-card" id="card-sw2" style="left: 750px; top: 60px;">
+      <div class="switch-name">SW2</div>
+      <div class="switch-bid">32769:0002.2222.2222</div>
+      <div class="switch-zone" data-zone="switch" data-id="sw2"></div>
+    </div>
+    <div class="switch-card" id="card-sw3" style="left: 750px; top: 380px;">
+      <div class="switch-name">SW3</div>
+      <div class="switch-bid">32769:0003.3333.3333</div>
+      <div class="switch-zone" data-zone="switch" data-id="sw3"></div>
+    </div>
+    <div class="switch-card" id="card-sw4" style="left: 180px; top: 380px;">
+      <div class="switch-name">SW4</div>
+      <div class="switch-bid">32769:0004.4444.4444</div>
+      <div class="switch-zone" data-zone="switch" data-id="sw4"></div>
+    </div>
+
+    <!-- Port labels -->
+    <div class="port-label" style="left: 310px; top: 100px;">Gi0/1</div>
+    <div class="port-label" style="left: 270px; top: 145px;">Gi0/2</div>
+    <div class="port-label" style="left: 750px; top: 100px;">Gi0/1</div>
+    <div class="port-label" style="left: 830px; top: 145px;">Gi0/2</div>
+    <div class="port-label" style="left: 830px; top: 380px;">Gi0/1</div>
+    <div class="port-label" style="left: 750px; top: 425px;">Gi0/2</div>
+    <div class="port-label" style="left: 310px; top: 425px;">Gi0/1</div>
+    <div class="port-label" style="left: 270px; top: 380px;">Gi0/2</div>
+
+    <!-- Cost labels (all 1G) -->
+    <div class="cost-label" style="left: 530px; top: 90px;">4</div>
+    <div class="cost-label" style="left: 835px; top: 260px;">4</div>
+    <div class="cost-label" style="left: 530px; top: 430px;">4</div>
+    <div class="cost-label" style="left: 225px; top: 260px;">4</div>
+
+    <!-- Drop zones -->
+    <div class="port-zone" data-zone="port" data-id="sw1-g01" style="left: 360px; top: 110px;"></div>
+    <div class="port-zone" data-zone="port" data-id="sw1-g02" style="left: 245px; top: 200px;"></div>
+    <div class="port-zone" data-zone="port" data-id="sw2-g01" style="left: 700px; top: 110px;"></div>
+    <div class="port-zone" data-zone="port" data-id="sw2-g02" style="left: 815px; top: 200px;"></div>
+    <div class="port-zone" data-zone="port" data-id="sw3-g01" style="left: 815px; top: 320px;"></div>
+    <div class="port-zone" data-zone="port" data-id="sw3-g02" style="left: 700px; top: 410px;"></div>
+    <div class="port-zone" data-zone="port" data-id="sw4-g01" style="left: 360px; top: 410px;"></div>
+    <div class="port-zone" data-zone="port" data-id="sw4-g02" style="left: 245px; top: 320px;"></div>
+
+    <div class="legend">
+      <strong>Link Cost (Legacy)</strong>
+      <div>10 Mbps = 100 &nbsp; · &nbsp; 100 Mbps = 19</div>
+      <div>1 Gbps = 4 &nbsp; · &nbsp; 10 Gbps = 2</div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-resize-handle"></div>
+    <div class="panel-scroll">
+      <div class="scenario-section">
+        <div class="scenario-label">SCENARIO</div>
+        <div class="scenario-text">
+          <strong>Foxglen Public Library</strong> wired four floor-distribution switches in a ring for redundancy.
+          All four uplinks are matching 1 Gbps fiber, so path costs alone won't decide everything.
+          <em>"Costs tie on the far side of the ring — you'll need to remember the BID tie-breaker rule
+          to figure out which port goes into blocking. Walk me through it on the whiteboard before we cut over."</em>
+        </div>
+        <div class="scenario-objective">Mission: Identify Root Bridge, every Root Port, every Designated Port, and every Blocking Port. Watch for the tie-break.</div>
+      </div>
+
+      <div class="tasks-divider">Label Palette</div>
+      <div class="palette">
+        <div class="token token-root" draggable="true" data-role="root">Root Bridge</div>
+        <div class="token token-rp" draggable="true" data-role="rp">Root Port (RP)</div>
+        <div class="token token-dp" draggable="true" data-role="dp">Designated (DP)</div>
+        <div class="token token-blk" draggable="true" data-role="blk">Blocking (BLK)</div>
+      </div>
+      <div class="instructions">Drag each label onto the matching slot on the topology. Click any placed label to clear it.</div>
+
+      <div class="tasks-divider">Hints</div>
+      <button class="hint-btn" id="hintBtn">💡 Reveal hint
+        <span class="hint-dots"><span class="hint-dot" id="dot1"></span><span class="hint-dot" id="dot2"></span><span class="hint-dot" id="dot3"></span></span>
+      </button>
+      <div class="hint-content" id="hintContent"></div>
+
+      <div class="actions">
+        <button class="check-btn" id="checkBtn">Check Answers</button>
+        <button class="reset-btn" id="resetBtn">Reset Board</button>
+      </div>
+      <button class="reset-btn" id="resetProgressBtn" style="margin-top:8px; width:100%; font-size:11px; color:#8aa0c0;">Reset my completion record for this lab</button>
+    </div>
+    <div class="panel-footer">
+      <span id="status">Drag labels onto the topology to begin</span>
+      <span id="progress">0%</span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <h2 id="modalTitle">Election complete!</h2>
+    <p id="modalBody"></p>
+    <div class="stats" id="modalStats"></div>
+    <button class="close-btn" id="closeBtn">Continue</button>
+  </div>
+</div>
+
+<script>
+const LAB_ID = 'stp3-square-ring';
+const ANSWERS = {
+  'switch:sw1': 'root',
+  'switch:sw2': null, 'switch:sw3': null, 'switch:sw4': null,
+  'port:sw1-g01': 'dp',  // toward SW2
+  'port:sw1-g02': 'dp',  // toward SW4
+  'port:sw2-g01': 'rp',  // toward SW1 (cost 4)
+  'port:sw2-g02': 'dp',  // toward SW3 (SW2 cost 4 < SW3 cost 8)
+  'port:sw3-g01': 'rp',  // toward SW2 — both paths to root cost 8, BID tie-break: SW2 (0002) < SW4 (0004)
+  'port:sw3-g02': 'blk', // toward SW4 — SW3 advertises 8, SW4 advertises 4, SW4 wins DP
+  'port:sw4-g01': 'dp',  // toward SW3 (SW4 cost 4 < SW3 cost 8)
+  'port:sw4-g02': 'rp',  // toward SW1 (cost 4)
+};
+const TOTAL_SLOTS = Object.values(ANSWERS).filter(v => v !== null).length;
+
+const HINTS = [
+  { cls: 'tier1', label: 'Tier 1', html: 'In a 4-switch ring, two of the non-root switches will sit equidistant from root. When their root path costs tie, STP falls back to a tie-breaker — and only one port on the segment between them stays forwarding.' },
+  { cls: 'tier2', label: 'Tier 2', html: '<strong>SW3</strong> can reach root two ways: via SW2 (cost 8) or via SW4 (cost 8). It\'s a tie. Tie-break is the <strong>sender BID</strong> on each incoming BPDU — the port that received the BPDU from the lower-BID neighbor wins. Compare SW2\'s BID and SW4\'s BID. Then on the SW3↔SW4 segment, compare each switch\'s root path cost — the one with the lower cost owns the Designated role.' },
+  { cls: 'tier3', label: 'Tier 3', html: '<strong>SW1</strong> = Root. Both SW1 ports = <em>Designated</em>.<br><strong>SW2 Gi0/1</strong> = RP (cost 4). <strong>SW4 Gi0/2</strong> = RP (cost 4).<br><strong>SW3</strong> sees a tie at cost 8. Sender BID tie-break: SW2 (…0002) &lt; SW4 (…0004) → <strong>SW3 Gi0/1 = RP</strong>.<br>SW2-SW3 segment: SW2 cost 4 &lt; SW3 cost 8 → SW2 Gi0/2 = DP.<br>SW3-SW4 segment: SW3 cost 8 vs SW4 cost 4 → SW4 wins DP. SW4 Gi0/1 = DP, <strong>SW3 Gi0/2 = Blocking</strong>.' },
+];
+let hintTier = 0;
+const hintBtn = document.getElementById('hintBtn');
+const hintContent = document.getElementById('hintContent');
+const dots = [document.getElementById('dot1'), document.getElementById('dot2'), document.getElementById('dot3')];
+hintBtn.addEventListener('click', () => {
+  if (hintTier >= 3) { hintTier = 0; hintContent.classList.remove('active'); dots.forEach(d => d.classList.remove('active')); hintBtn.firstChild.textContent = '💡 Reveal hint '; return; }
+  const h = HINTS[hintTier]; hintContent.className = 'hint-content active ' + h.cls; hintContent.innerHTML = h.html;
+  dots[hintTier].classList.add('active'); hintTier++;
+  hintBtn.firstChild.textContent = (hintTier < 3 ? `💡 Next hint (${hintTier+1}/3) ` : '💡 Hide hints ');
+});
+
+const tokens = document.querySelectorAll('.token');
+let draggingRole = null;
+tokens.forEach(t => {
+  t.addEventListener('dragstart', (e) => { draggingRole = t.dataset.role; e.dataTransfer.setData('text/plain', draggingRole); e.dataTransfer.effectAllowed = 'copy'; t.classList.add('dragging'); });
+  t.addEventListener('dragend', () => { draggingRole = null; t.classList.remove('dragging'); });
+});
+const ROLE_LABELS = { root: 'ROOT', rp: 'RP', dp: 'DP', blk: 'BLK' };
+function setupZone(zone) {
+  zone.addEventListener('dragover', (e) => {
+    if (!draggingRole) return;
+    const accept = zone.dataset.zone === 'switch' ? draggingRole === 'root' : ['rp','dp','blk'].includes(draggingRole);
+    if (!accept) return; e.preventDefault(); zone.classList.add('over');
+  });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault(); zone.classList.remove('over');
+    const role = e.dataTransfer.getData('text/plain'); if (!role) return;
+    const accept = zone.dataset.zone === 'switch' ? role === 'root' : ['rp','dp','blk'].includes(role);
+    if (!accept) return; placeRole(zone, role);
+  });
+  zone.addEventListener('click', () => { if (zone.classList.contains('filled')) { clearZone(zone); updateProgress(); } });
+}
+function placeRole(zone, role) {
+  zone.classList.remove('role-root','role-rp','role-dp','role-blk','correct','wrong');
+  zone.classList.add('filled', 'role-' + role); zone.dataset.current = role;
+  zone.textContent = zone.dataset.zone === 'switch' ? 'ROOT BRIDGE' : ROLE_LABELS[role];
+  if (zone.dataset.zone === 'switch') { zone.style.background = '#ffd166'; zone.style.color = '#1a2540'; zone.style.fontWeight = '700'; }
+  updateProgress();
+}
+function clearZone(zone) {
+  zone.classList.remove('filled','role-root','role-rp','role-dp','role-blk','correct','wrong');
+  delete zone.dataset.current; zone.textContent = ''; zone.style.background = ''; zone.style.color = ''; zone.style.fontWeight = '';
+}
+document.querySelectorAll('.switch-zone, .port-zone').forEach(setupZone);
+
+const statusEl = document.getElementById('status');
+const progressEl = document.getElementById('progress');
+function updateProgress() {
+  let placed = 0;
+  document.querySelectorAll('[data-current]').forEach(z => { if (z.dataset.current) placed++; });
+  const pct = Math.round((placed / TOTAL_SLOTS) * 100);
+  const done = window.Progress && Progress.getLab(LAB_ID);
+  progressEl.textContent = pct + '% placed' + (done && done.completed ? ' · ✓ Completed' : '');
+  statusEl.textContent = placed === 0 ? 'Drag labels onto the topology to begin'
+    : (placed < TOTAL_SLOTS ? 'Keep going — fill every slot, then Check Answers' : 'All slots filled. Click Check Answers.');
+}
+
+document.getElementById('checkBtn').addEventListener('click', () => {
+  let correct = 0, wrong = 0, missing = 0;
+  document.querySelectorAll('.switch-zone, .port-zone').forEach(z => {
+    const key = z.dataset.zone + ':' + z.dataset.id;
+    const expected = ANSWERS[key]; const current = z.dataset.current || null;
+    z.classList.remove('correct','wrong');
+    if (expected === null) { if (current) { z.classList.add('wrong'); wrong++; } }
+    else { if (!current) missing++; else if (current === expected) { z.classList.add('correct'); correct++; } else { z.classList.add('wrong'); wrong++; } }
+  });
+  showResult(correct, wrong, missing);
+});
+document.getElementById('resetBtn').addEventListener('click', () => { document.querySelectorAll('.switch-zone, .port-zone').forEach(clearZone); updateProgress(); });
+document.getElementById('resetProgressBtn').addEventListener('click', () => {
+  if (!confirm('Clear your saved completion record for this lab?')) return;
+  if (window.Progress) Progress.resetLab(LAB_ID); updateProgress();
+});
+
+const modalOverlay = document.getElementById('modalOverlay');
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const modalStats = document.getElementById('modalStats');
+function showResult(correct, wrong, missing) {
+  modal.classList.toggle('fail', wrong + missing > 0);
+  if (wrong + missing === 0) {
+    modalTitle.textContent = '✓ Election Verified';
+    modalBody.innerHTML = 'Solid — you handled the ring tie-break. SW3 picked Gi0/1 as its Root Port because the BPDU from SW2 carried a lower BID than the one from SW4. Then SW4\'s lower root cost on the SW3-SW4 segment forced <strong>SW3 Gi0/2</strong> into Blocking.';
+    if (window.Progress) Progress.recordLabComplete(LAB_ID); updateProgress();
+  } else {
+    modalTitle.textContent = 'Not quite — review the highlighted slots';
+    modalBody.innerHTML = 'Look at SW3. Both directions to root cost the same. Apply the tie-breakers in order: lowest sender BID wins.';
+  }
+  modalStats.innerHTML = '<div>Correct:  ' + correct + '</div><div>Wrong:    ' + wrong + '</div><div>Missing:  ' + missing + '</div>';
+  modalOverlay.classList.add('active');
+}
+document.getElementById('closeBtn').addEventListener('click', () => modalOverlay.classList.remove('active'));
+
+function drawLines() {
+  const svg = document.getElementById('links'); svg.innerHTML = '';
+  const ns = 'http://www.w3.org/2000/svg';
+  const sw1 = { x: 245, y: 110 }, sw2 = { x: 815, y: 110 }, sw3 = { x: 815, y: 410 }, sw4 = { x: 245, y: 410 };
+  function drawSwitch(c) {
+    const g = document.createElementNS(ns, 'g');
+    const r1 = document.createElementNS(ns, 'rect');
+    r1.setAttribute('x', c.x - 50); r1.setAttribute('y', c.y - 18); r1.setAttribute('width', 100); r1.setAttribute('height', 36);
+    r1.setAttribute('fill', '#243b5c'); r1.setAttribute('stroke', '#ffd166'); r1.setAttribute('stroke-width', 2); r1.setAttribute('rx', 3); g.appendChild(r1);
+    const stripe = document.createElementNS(ns, 'rect');
+    stripe.setAttribute('x', c.x - 50); stripe.setAttribute('y', c.y - 18); stripe.setAttribute('width', 100); stripe.setAttribute('height', 6);
+    stripe.setAttribute('fill', '#ffd166'); stripe.setAttribute('rx', 2); g.appendChild(stripe);
+    for (let i = 0; i < 4; i++) { const dot = document.createElementNS(ns, 'circle'); dot.setAttribute('cx', c.x - 36 + i * 24); dot.setAttribute('cy', c.y + 5); dot.setAttribute('r', 3); dot.setAttribute('fill', '#8aa0c0'); g.appendChild(dot); }
+    svg.appendChild(g);
+  }
+  function drawLink(a, b) {
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', a.x); line.setAttribute('y1', a.y); line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+    line.setAttribute('stroke', '#06d6a0'); line.setAttribute('stroke-width', 2); svg.appendChild(line);
+  }
+  drawLink(sw1, sw2); drawLink(sw2, sw3); drawLink(sw3, sw4); drawLink(sw4, sw1);
+  drawSwitch(sw1); drawSwitch(sw2); drawSwitch(sw3); drawSwitch(sw4);
+}
+window.addEventListener('load', drawLines); window.addEventListener('resize', drawLines);
+
+(function () {
+  const handle = document.querySelector('.panel-resize-handle'); const panel = document.querySelector('.right-panel');
+  let dragging = false;
+  handle.addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
+  handle.addEventListener('dblclick', () => panel.style.width = '380px');
+  window.addEventListener('mousemove', (e) => { if (!dragging) return; const w = window.innerWidth - e.clientX; if (w >= 300 && w <= window.innerWidth * 0.7) panel.style.width = w + 'px'; });
+  window.addEventListener('mouseup', () => dragging = false);
+})();
+
+updateProgress();
+</script>
+</body>
+</html>
