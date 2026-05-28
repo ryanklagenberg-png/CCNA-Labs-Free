@@ -323,5 +323,94 @@ document.getElementById('closeBtn').addEventListener('click', () => modalOverlay
 
 updateProgress();
 </script>
+
+<style>/* touch-drag-bridge injected */ [draggable="true"]{touch-action:none;} [data-touch-ghost]{pointer-events:none;}</style>
+<script>
+/* touch-drag-bridge injected */
+/* Makes native HTML5 drag-and-drop work on touchscreens by synthesizing drag
+   events from touch events. The page's own dragstart/dragover/drop handlers run
+   unchanged. A shared fake dataTransfer is attached to every synthesized event so
+   handlers that use dataTransfer (STP) work too; handlers that use a shared
+   variable (ACL) ignore it. Binds touch only => mouse/desktop behavior unchanged. */
+(function () {
+  if (!('ontouchstart' in window)) return;
+  var src = null, ghost = null, started = false, sx = 0, sy = 0, gx = 0, gy = 0, lastOver = null;
+  var THRESH = 6;
+  var dt = {
+    _d: {},
+    setData: function (k, v) { this._d[k] = String(v); },
+    getData: function (k) { return this._d[k] || ''; },
+    clearData: function () { this._d = {}; },
+    setDragImage: function () {},
+    effectAllowed: 'all', dropEffect: 'move', files: [], types: []
+  };
+  function fire(el, type) {
+    if (!el) return;
+    var ev = new Event(type, { bubbles: true, cancelable: true });
+    ev.dataTransfer = dt;
+    el.dispatchEvent(ev);
+  }
+  function targetAt(x, y) {
+    if (ghost) ghost.style.display = 'none';
+    var el = document.elementFromPoint(x, y);
+    if (ghost) ghost.style.display = '';
+    return el;
+  }
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) return;
+    var node = e.target;
+    if (!node || !node.closest) return;
+    var t = node.closest('[draggable="true"]');
+    if (!t) return;
+    src = t; started = false;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function (e) {
+    if (!src) return;
+    var p = e.touches[0];
+    if (!started) {
+      if (Math.abs(p.clientX - sx) < THRESH && Math.abs(p.clientY - sy) < THRESH) return;
+      started = true;
+      dt.clearData();
+      fire(src, 'dragstart');
+      var r = src.getBoundingClientRect();
+      gx = p.clientX - r.left; gy = p.clientY - r.top;
+      ghost = src.cloneNode(true);
+      ghost.setAttribute('data-touch-ghost', '1');
+      ghost.style.position = 'fixed';
+      ghost.style.left = r.left + 'px';
+      ghost.style.top = r.top + 'px';
+      ghost.style.width = r.width + 'px';
+      ghost.style.margin = '0';
+      ghost.style.opacity = '0.85';
+      ghost.style.zIndex = '99999';
+      ghost.style.transform = 'scale(1.03)';
+      ghost.style.boxShadow = '0 6px 18px rgba(0,0,0,.5)';
+      document.body.appendChild(ghost);
+    }
+    e.preventDefault();
+    if (ghost) { ghost.style.left = (p.clientX - gx) + 'px'; ghost.style.top = (p.clientY - gy) + 'px'; }
+    var el = targetAt(p.clientX, p.clientY);
+    if (el !== lastOver) { if (lastOver) fire(lastOver, 'dragleave'); lastOver = el; }
+    if (el) fire(el, 'dragover');
+  }, { passive: false });
+
+  function end(e) {
+    if (!src) return;
+    if (started) {
+      var p = (e.changedTouches && e.changedTouches[0]) || { clientX: sx, clientY: sy };
+      var el = targetAt(p.clientX, p.clientY);
+      if (el) { fire(el, 'dragover'); fire(el, 'drop'); }
+      fire(src, 'dragend');
+    }
+    if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    if (lastOver) fire(lastOver, 'dragleave');
+    ghost = null; src = null; started = false; lastOver = null;
+  }
+  document.addEventListener('touchend', end, { passive: false });
+  document.addEventListener('touchcancel', end, { passive: false });
+})();
+</script>
 </body>
 </html>
