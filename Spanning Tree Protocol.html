@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CCNA-STP-01 — STP Election (Four-Switch Square Ring)</title>
 <script src="progress.js"></script>
 <style>
@@ -77,6 +78,19 @@
   .modal .stats div { margin: 2px 0; }
   .modal .close-btn { background: #06d6a0; color: #0a0e1a; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; margin-top: 8px; }
   .modal.fail .close-btn { background: #ef476f; color: #fff; }
+
+  @media (max-width: 768px) {
+    body { overflow: visible; height: auto; min-height: 100vh; }
+    header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+    header h1 { font-size: 15px; }
+    header .sub { display: none; }
+    .main-area { flex-direction: column; height: auto; }
+    .topology { min-height: 480px; flex: none; overflow: auto; }
+    .right-panel { width: 100%; border-left: none; border-top: 1px solid #2a3550; }
+    .panel-resize-handle { display: none; }
+    .panel-scroll { padding: 14px 14px; }
+    .legend { max-width: calc(100% - 28px); font-size: 10px; padding: 8px 10px; }
+  }
 </style>
 </head>
 <body>
