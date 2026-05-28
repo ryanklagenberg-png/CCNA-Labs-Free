@@ -319,6 +319,9 @@ footer b { color: #00d4ff; }
       bottom: auto !important;
       height: var(--cli-vh, 100dvh) !important;
       padding: 0 !important;
+      /* #panel sits at z-index:100 and full-width on mobile, painting over the
+         CLI (z-index:50) so you can't reach the input. Lift the overlay above it. */
+      z-index: 1000 !important;
     }
     #term {
       width: 100% !important;
